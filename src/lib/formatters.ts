@@ -3,6 +3,7 @@
  * locale and to UTC, so server-rendered and hydrated text are identical.
  */
 
+import type { MetricFormat } from "@/types/domain";
 import type { Change } from "./calculations";
 import { type DateRange, type IsoDate, toUtcDate } from "./dates";
 import { BASE_CURRENCY, type CurrencyCode, toMajor } from "./money";
@@ -105,12 +106,54 @@ export function formatChange(change: Change, digits = 1): string {
   }
 }
 
+/**
+ * A KPI value in its own format: whole currency, a count, or a percentage with
+ * two decimals (conversion rates sit near 1%, where one decimal hides real moves).
+ */
+export function formatMetricValue(value: number | null, format: MetricFormat): string {
+  if (value === null) return "—";
+  switch (format) {
+    case "currency":
+      return formatMoney(value, { whole: true });
+    case "integer":
+      return formatInteger(value);
+    case "percentage":
+      return formatPercent(value, 2);
+  }
+}
+
+/** Digits for a change in a metric of this format: points on small ratios need two. */
+export function changeDigits(format: MetricFormat): number {
+  return format === "percentage" ? 2 : 1;
+}
+
+/** The change in words for screen readers: "up 6.3%", "down 0.08 percentage points". */
+export function describeChange(change: Change, digits = 1): string {
+  switch (change.kind) {
+    case "relative":
+    case "points": {
+      if (change.value === 0) return change.kind === "points" ? "no change in percentage points" : "no change";
+      const size = Math.abs(change.value);
+      const amount =
+        change.kind === "relative"
+          ? formatPercent(size, digits)
+          : `${numberFormat({ minimumFractionDigits: digits, maximumFractionDigits: digits }).format(size)} percentage points`;
+      return `${change.value > 0 ? "up" : "down"} ${amount}`;
+    }
+    case "new":
+      return "new this period, nothing to compare with";
+    case "unavailable":
+      return "no comparison data";
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Dates
 
-export type DateStyle = "medium" | "short" | "month" | "monthShort" | "weekday";
+export type DateStyle = "long" | "medium" | "short" | "month" | "monthShort" | "weekday";
 
 const DATE_STYLES: Record<DateStyle, Intl.DateTimeFormatOptions> = {
+  long: { weekday: "long", month: "long", day: "numeric", year: "numeric" }, // Wednesday, September 30, 2026
   medium: { month: "short", day: "numeric", year: "numeric" }, // Sep 30, 2026
   short: { month: "short", day: "numeric" }, // Sep 30
   month: { month: "short", year: "numeric" }, // Sep 2026

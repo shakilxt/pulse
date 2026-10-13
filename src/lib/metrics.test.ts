@@ -7,6 +7,7 @@ import {
   buildMetric,
   changeSentiment,
   describeComparison,
+  isMetricId,
   metricChange,
 } from "./metrics";
 
@@ -54,6 +55,14 @@ describe("buildMetric", () => {
 
   it("marks the previous value missing when there is no comparison period", () => {
     expect(buildMetric("orders", summary(), null, "vs previous 30 days").previousValue).toBeNull();
+  });
+});
+
+describe("isMetricId", () => {
+  it("recognises defined metrics only", () => {
+    expect(isMetricId("revenue")).toBe(true);
+    expect(isMetricId("toString")).toBe(false);
+    expect(isMetricId("profitability")).toBe(false);
   });
 });
 

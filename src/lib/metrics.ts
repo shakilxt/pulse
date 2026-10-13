@@ -97,6 +97,10 @@ export type MetricId = keyof typeof METRIC_DEFINITIONS;
 /** The four headline KPIs on the overview, in display order. */
 export const OVERVIEW_METRICS = ["revenue", "orders", "activeCustomers", "conversionRate"] as const satisfies readonly MetricId[];
 
+export function isMetricId(value: string): value is MetricId {
+  return Object.hasOwn(METRIC_DEFINITIONS, value);
+}
+
 export function getMetricDefinition(id: MetricId): MetricDefinition {
   return METRIC_DEFINITIONS[id];
 }

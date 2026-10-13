@@ -8,7 +8,7 @@ See [`PROJECT_SPEC.md`](./PROJECT_SPEC.md) for the full specification.
 ## Stack
 
 Next.js 16 (App Router, Cache Components) · React 19 · TypeScript (strict) · Tailwind CSS 4 · Radix UI primitives ·
-Lucide icons · Vitest · Playwright
+Recharts · Lucide icons · Vitest · Playwright
 
 ## Commands
 
@@ -32,6 +32,10 @@ records and nothing depends on the current date. It covers 1 January 2024 to 30 
 Fernhill Studio, and is simulated in the order a real business works: daily traffic per channel converts into new
 customers, customers make purchases, and revenue, product performance, expenses and notifications all derive from
 that ledger. Names are random combinations and every email uses the reserved `example.com` domain.
+
+Pages read their state (date range, filters, sorting) from the URL and compute everything on the server; the browser
+receives only the figures it shows. Charts are the only client-side drawing, and every chart also has a written
+summary and a data table.
 
 Money is stored as integer cents. Ratios are fractions, and changes in a ratio are reported in percentage points.
 Metric definitions live in `src/lib/metrics.ts`; unit tests check that chart series, KPIs, product and channel

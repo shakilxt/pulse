@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  changeDigits,
+  describeChange,
   formatChange,
   formatCompactNumber,
   formatDate,
   formatDateRange,
   formatDateTime,
   formatInteger,
+  formatMetricValue,
   formatMoney,
   formatPercent,
   formatRelativeTime,
@@ -57,7 +60,30 @@ describe("formatChange", () => {
   });
 });
 
+describe("KPI formatting", () => {
+  it("formats each metric format and the missing value", () => {
+    expect(formatMetricValue(5_754_800, "currency")).toBe("$57,548");
+    expect(formatMetricValue(3740, "integer")).toBe("3,740");
+    expect(formatMetricValue(0.010527, "percentage")).toBe("1.05%");
+    expect(formatMetricValue(null, "currency")).toBe("—");
+    expect(formatChange({ kind: "points", value: 0.0809 }, changeDigits("percentage"))).toBe("+0.08 pp");
+  });
+
+  it("describes changes in words", () => {
+    expect(describeChange({ kind: "relative", value: 0.0633 })).toBe("up 6.3%");
+    expect(describeChange({ kind: "relative", value: -0.12 })).toBe("down 12.0%");
+    expect(describeChange({ kind: "points", value: -0.081 }, 2)).toBe("down 0.08 percentage points");
+    expect(describeChange({ kind: "relative", value: 0 })).toBe("no change");
+    expect(describeChange({ kind: "new" })).toBe("new this period, nothing to compare with");
+    expect(describeChange({ kind: "unavailable" })).toBe("no comparison data");
+  });
+});
+
 describe("date formatting", () => {
+  it("writes the long form for headings", () => {
+    expect(formatDate("2026-09-30", "long")).toBe("Wednesday, September 30, 2026");
+  });
+
   it("formats ISO dates in UTC", () => {
     expect(formatDate("2026-09-30")).toBe("Sep 30, 2026");
     expect(formatDate("2026-09-30", "short")).toBe("Sep 30");

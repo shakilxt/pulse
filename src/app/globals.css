@@ -241,6 +241,15 @@
     outline-offset: 2px;
   }
 
+  /* While a filter change is loading, the figures it will replace fade back but keep their place. */
+  [data-pending-region] {
+    transition: opacity 200ms var(--ease-out-soft);
+  }
+
+  :root:has([data-pending]) [data-pending-region] {
+    opacity: 0.55;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
