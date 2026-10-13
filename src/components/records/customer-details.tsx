@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/tables/status-badge";
 import type { CustomerActivity, CustomerRow } from "@/lib/customers";
 import { type DateRange, rangeLength } from "@/lib/dates";
 import { formatDate, formatDateRange, formatInteger, formatMoney } from "@/lib/formatters";
+import type { CurrencyCode } from "@/lib/money";
 import { PARAM, hrefWithParams } from "@/lib/search-params";
 import { DetailList, DetailRow } from "./detail-list";
 
@@ -14,12 +15,17 @@ function statusNote(row: CustomerRow, activeWindow: DateRange): string {
 }
 
 /** The detail drawer for one customer: lifetime figures and their latest transactions. Fictional data. */
-export function customerPanel(row: CustomerRow, activity: CustomerActivity, activeWindow: DateRange): RecordPanel {
+export function customerPanel(
+  row: CustomerRow,
+  activity: CustomerActivity,
+  activeWindow: DateRange,
+  currency: CurrencyCode,
+): RecordPanel {
   const transactionsHref = hrefWithParams("/transactions", "", { [PARAM.query]: row.id });
   const figures = [
-    { label: "Total spend", value: formatMoney(row.totalSpendMinor) },
+    { label: "Total spend", value: formatMoney(row.totalSpendMinor, currency) },
     { label: "Orders", value: formatInteger(row.orderCount) },
-    { label: "Average order", value: row.averageOrderMinor === null ? "—" : formatMoney(row.averageOrderMinor) },
+    { label: "Average order", value: row.averageOrderMinor === null ? "—" : formatMoney(row.averageOrderMinor, currency) },
   ];
 
   return {
@@ -66,7 +72,7 @@ export function customerPanel(row: CustomerRow, activity: CustomerActivity, acti
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="font-medium text-ink tabular">{formatMoney(transaction.amountMinor)}</span>
+                    <span className="font-medium text-ink tabular">{formatMoney(transaction.amountMinor, currency)}</span>
                     <StatusBadge status={transaction.status} />
                   </div>
                 </li>

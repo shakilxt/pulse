@@ -5,10 +5,11 @@ import { RecordDrawer, RecordDrawerTrigger } from "@/components/tables/record-dr
 import { StatusBadge } from "@/components/tables/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate, formatMoney } from "@/lib/formatters";
+import type { CurrencyCode } from "@/lib/money";
 import type { TransactionRow } from "@/lib/transaction-rows";
 import { Panel, PanelLink } from "./panel";
 
-const COLUMNS: DataTableColumn<TransactionRow>[] = [
+const columnsFor = (currency: CurrencyCode): DataTableColumn<TransactionRow>[] => [
   {
     id: "id",
     header: "Transaction",
@@ -35,13 +36,13 @@ const COLUMNS: DataTableColumn<TransactionRow>[] = [
     id: "amount",
     header: "Amount",
     align: "end",
-    cell: (row) => <span className="font-medium tabular">{formatMoney(row.amountMinor)}</span>,
+    cell: (row) => <span className="font-medium tabular">{formatMoney(row.amountMinor, currency)}</span>,
   },
 ];
 
 /** The latest transactions dated inside the period, newest first, each opening a detail drawer. */
-export function RecentTransactions({ rows }: { rows: readonly TransactionRow[] }) {
-  const panels = Object.fromEntries(rows.map((row) => [row.id, transactionPanel(row)]));
+export function RecentTransactions({ rows, currency }: { rows: readonly TransactionRow[]; currency: CurrencyCode }) {
+  const panels = Object.fromEntries(rows.map((row) => [row.id, transactionPanel(row, currency)]));
   return (
     <Panel
       id="recent-transactions"
@@ -58,7 +59,7 @@ export function RecentTransactions({ rows }: { rows: readonly TransactionRow[] }
         <RecordDrawer panels={panels} noun="transaction">
           <DataTable
             caption="Most recent transactions in the selected period"
-            columns={COLUMNS}
+            columns={columnsFor(currency)}
             rows={rows}
             getRowId={(row) => row.id}
             empty={

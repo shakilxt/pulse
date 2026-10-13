@@ -3,6 +3,7 @@ import { ChangeBadge } from "@/components/dashboard/change-badge";
 import { MetricInfo } from "@/components/dashboard/metric-info";
 import { Panel } from "@/components/dashboard/panel";
 import { changeDigits, formatDateRange, formatMetricValue } from "@/lib/formatters";
+import type { CurrencyCode } from "@/lib/money";
 import { changeSentiment, getMetricDefinition, isMetricId, metricChange } from "@/lib/metrics";
 import type { DateRange } from "@/lib/dates";
 
@@ -11,11 +12,12 @@ interface PeriodComparisonProps {
   range: DateRange;
   comparisonRange: DateRange | null;
   comparisonLabel: string;
+  currency: CurrencyCode;
   className?: string;
 }
 
 /** Summary statistics for every measure: this period beside the comparison, with the change in each. */
-export function PeriodComparison({ metrics, range, comparisonRange, comparisonLabel, className }: PeriodComparisonProps) {
+export function PeriodComparison({ metrics, range, comparisonRange, comparisonLabel, currency, className }: PeriodComparisonProps) {
   return (
     <Panel
       id="comparison"
@@ -56,10 +58,10 @@ export function PeriodComparison({ metrics, range, comparisonRange, comparisonLa
                     </span>
                   </th>
                   <td className="px-3 py-2.5 text-right font-medium whitespace-nowrap text-ink">
-                    {formatMetricValue(metric.value, metric.format)}
+                    {formatMetricValue(metric.value, metric.format, currency)}
                   </td>
                   <td className="hidden px-3 py-2.5 text-right whitespace-nowrap text-ink-muted sm:table-cell lg:hidden min-[90rem]:table-cell">
-                    {formatMetricValue(metric.previousValue, metric.format)}
+                    {formatMetricValue(metric.previousValue, metric.format, currency)}
                   </td>
                   <td className="py-2.5 pr-5 pl-3 text-right sm:pr-6">
                     <ChangeBadge

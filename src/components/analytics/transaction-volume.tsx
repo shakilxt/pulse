@@ -5,16 +5,18 @@ import { StatusBadge } from "@/components/tables/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { StatusVolume } from "@/lib/analytics";
 import { formatDecimal, formatInteger, formatMoney } from "@/lib/formatters";
+import type { CurrencyCode } from "@/lib/money";
 
 interface TransactionVolumeProps {
   rows: readonly StatusVolume[];
   total: number;
   summary: string;
+  currency: CurrencyCode;
   className?: string;
 }
 
 /** Every charge in the period by outcome, so orders can be read against failures and refunds. */
-export function TransactionVolume({ rows, total, summary, className }: TransactionVolumeProps) {
+export function TransactionVolume({ rows, total, summary, currency, className }: TransactionVolumeProps) {
   return (
     <Panel
       id="volume"
@@ -58,7 +60,7 @@ export function TransactionVolume({ rows, total, summary, className }: Transacti
                   </span>
                 </td>
                 <td className="py-2.5 pr-3 text-right font-medium text-ink">{formatInteger(row.count)}</td>
-                <td className="py-2.5 text-right whitespace-nowrap text-ink-muted">{formatMoney(row.amountMinor, { whole: true })}</td>
+                <td className="py-2.5 text-right whitespace-nowrap text-ink-muted">{formatMoney(row.amountMinor, currency, { whole: true })}</td>
               </tr>
             ))}
           </tbody>

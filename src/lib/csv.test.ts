@@ -25,6 +25,13 @@ describe("escapeCsvField", () => {
     expect(escapeCsvField("-note")).toBe("'-note");
     expect(escapeCsvField("@handle")).toBe("'@handle");
     expect(escapeCsvField('=HYPERLINK("x","y")')).toBe(`"'=HYPERLINK(""x"",""y"")"`);
+    expect(escapeCsvField("-1+1")).toBe("'-1+1");
+  });
+
+  it("leaves signed decimals as numbers", () => {
+    expect(escapeCsvField("-71.3")).toBe("-71.3");
+    expect(escapeCsvField("-417.99")).toBe("-417.99");
+    expect(escapeCsvField("+6.3")).toBe("+6.3");
   });
 });
 

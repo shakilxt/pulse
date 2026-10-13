@@ -3,7 +3,8 @@
 import { useId } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, ReferenceDot, Tooltip, XAxis, YAxis } from "recharts";
 import type { TrendPoint } from "@/lib/chart-series";
-import { formatCompactMetric, formatMetricValue } from "@/lib/formatters";
+import { formatCompactMetric, formatMetricValue, formatMinorIn } from "@/lib/formatters";
+import { type CurrencyCode, convertForDisplay } from "@/lib/money";
 import type { MetricFormat } from "@/types/domain";
 import { AXIS_TICK, CHART_COLORS, CHART_MARGIN, Y_AXIS_WIDTH } from "./chart-theme";
 import { ChartTooltipCard, type TooltipRow } from "./chart-tooltip";
@@ -12,6 +13,8 @@ import { useReducedMotion } from "./use-reduced-motion";
 interface TrendChartProps {
   points: readonly TrendPoint[];
   format: MetricFormat;
+  /** Display currency for money metrics. */
+  currency: CurrencyCode;
   /** Series name in the tooltip: "Revenue", "Conversion rate". */
   seriesLabel: string;
   /** Name of the dashed series: "Previous period" or "Same period last year". */
@@ -28,14 +31,18 @@ interface TrendChartProps {
  * One metric over time: the period as an area or line, the comparison period
  * as a dashed line, and the strongest point marked in gold.
  */
-export function TrendChart({ points, format, seriesLabel, comparisonName, variant, peakDate, label }: TrendChartProps) {
+export function TrendChart({ points, format, currency, seriesLabel, comparisonName, variant, peakDate, label }: TrendChartProps) {
   const gradientId = `${useId()}-trend`;
   const reducedMotion = useReducedMotion();
-  const data = [...points];
+  // Money is drawn on a scale in the display currency so the axis ticks land on round amounts.
+  const toScale = (value: number | null) => (value === null || format !== "currency" ? value : convertForDisplay(value, currency));
+  const data = points.map((point) => ({ ...point, value: toScale(point.value), previousValue: toScale(point.previousValue) }));
   const axisLabels = new Map(points.map((point) => [point.date, point.axisLabel]));
   const hasComparison = points.some((point) => point.previousValue !== null);
-  const compact = (value: number) => formatCompactMetric(value, format);
-  const full = (value: number | null) => formatMetricValue(value, format);
+  const axisTick = (value: number) =>
+    format === "currency" ? formatMinorIn(value, currency, { compact: true }) : formatCompactMetric(value, format, currency);
+  const compact = (value: number) => formatCompactMetric(value, format, currency);
+  const full = (value: number | null) => formatMetricValue(value, format, currency);
 
   const peakIndex = points.findIndex((point) => point.date === peakDate);
   const peak = points[peakIndex];
@@ -82,7 +89,7 @@ export function TrendChart({ points, format, seriesLabel, comparisonName, varian
         tickMargin={8}
       />
       <YAxis
-        tickFormatter={compact}
+        tickFormatter={axisTick}
         tick={AXIS_TICK}
         tickLine={false}
         axisLine={false}
@@ -127,7 +134,7 @@ export function TrendChart({ points, format, seriesLabel, comparisonName, varian
       {peak && peak.value !== null ? (
         <ReferenceDot
           x={peak.date}
-          y={peak.value}
+          y={toScale(peak.value) ?? undefined}
           r={5}
           fill={CHART_COLORS.highlight}
           stroke="var(--surface)"

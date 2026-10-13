@@ -8,6 +8,7 @@ import { STATUS_META, StatusBadge } from "@/components/tables/status-badge";
 import { TableToolbar } from "@/components/tables/table-toolbar";
 import type { DateRange } from "@/lib/dates";
 import { formatDate, formatInteger, formatMoney } from "@/lib/formatters";
+import type { CurrencyCode } from "@/lib/money";
 import { PARAM, hrefWithParams, nextSort, serializeSort, sortToParam } from "@/lib/search-params";
 import type { TransactionRow } from "@/lib/transaction-rows";
 import {
@@ -24,7 +25,7 @@ import { transactionPanel } from "./transaction-details";
 
 const PATH = "/transactions";
 
-const COLUMNS: DataTableColumn<TransactionRow, TransactionSortKey>[] = [
+const columnsFor = (currency: CurrencyCode): DataTableColumn<TransactionRow, TransactionSortKey>[] => [
   {
     id: "id",
     header: "Transaction",
@@ -81,7 +82,7 @@ const COLUMNS: DataTableColumn<TransactionRow, TransactionSortKey>[] = [
     align: "end",
     cell: (row) => (
       <span className="flex flex-col items-end gap-1">
-        <span className="font-medium whitespace-nowrap tabular">{formatMoney(row.amountMinor)}</span>
+        <span className="font-medium whitespace-nowrap tabular">{formatMoney(row.amountMinor, currency)}</span>
         <StatusBadge status={row.status} className="sm:hidden" />
       </span>
     ),
@@ -93,10 +94,11 @@ interface TransactionTableProps {
   /** The current query string, so links keep every other parameter. */
   search: string;
   bounds: DateRange;
+  currency: CurrencyCode;
 }
 
 /** The transaction history: filters, a summary of the filtered rows, the table, its drawers and pagination. */
-export function TransactionTable({ list, search, bounds }: TransactionTableProps) {
+export function TransactionTable({ list, search, bounds, currency }: TransactionTableProps) {
   const { query, page, statusCounts } = list;
   const resetHref = hrefWithParams(PATH, search, {
     [PARAM.query]: null,
@@ -118,7 +120,7 @@ export function TransactionTable({ list, search, bounds }: TransactionTableProps
   });
   const sortOption =
     TRANSACTION_SORT_OPTIONS.find((option) => option.value === serializeSort(query.sort))?.value ?? "date.desc";
-  const panels = Object.fromEntries(page.rows.map((row) => [row.id, transactionPanel(row)]));
+  const panels = Object.fromEntries(page.rows.map((row) => [row.id, transactionPanel(row, currency)]));
 
   return (
     <RecordsView
@@ -167,7 +169,7 @@ export function TransactionTable({ list, search, bounds }: TransactionTableProps
             {page.totalRows === 1 ? "transaction" : "transactions"}
           </p>
           <p>
-            Completed value <span className="font-semibold text-ink">{formatMoney(list.completedMinor, { whole: true })}</span>
+            Completed value <span className="font-semibold text-ink">{formatMoney(list.completedMinor, currency, { whole: true })}</span>
           </p>
         </>
       }
@@ -182,7 +184,7 @@ export function TransactionTable({ list, search, bounds }: TransactionTableProps
       <RecordDrawer panels={panels} noun="transaction">
         <DataTable
           caption={`Transactions sorted by ${sortLabel.label}, ${sortLabel[query.sort.direction]}${list.filtered ? ", filtered" : ""}`}
-          columns={COLUMNS}
+          columns={columnsFor(currency)}
           rows={page.rows}
           getRowId={(row) => row.id}
           sort={query.sort}

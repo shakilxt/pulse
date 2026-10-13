@@ -90,7 +90,8 @@ export interface DailyExpense {
 // ---------------------------------------------------------------------------
 // Notifications
 
-export type NotificationCategory = "payments" | "customers" | "reports";
+export const NOTIFICATION_CATEGORIES = ["payments", "customers", "reports"] as const;
+export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 
 export interface Notification {
   id: string;

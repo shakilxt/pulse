@@ -4,6 +4,7 @@ import { ResetFiltersLink } from "@/components/tables/table-toolbar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoadingState } from "@/components/ui/loading-state";
+import { cn } from "@/lib/cn";
 
 interface RecordsViewProps {
   /** Names the results region: "Transactions". */
@@ -11,7 +12,9 @@ interface RecordsViewProps {
   toolbar: ReactNode;
   /** Result count and totals for the filtered rows, above the table. */
   summary: ReactNode;
-  pagination: ReactNode;
+  /** Omitted when every row fits on one page. */
+  pagination?: ReactNode;
+  className?: string;
   children: ReactNode;
 }
 
@@ -19,16 +22,16 @@ interface RecordsViewProps {
  * A record page's body: filters in one row, then a card holding the result
  * summary, the table and its pagination. The card dims while new results load.
  */
-export function RecordsView({ label, toolbar, summary, pagination, children }: RecordsViewProps) {
+export function RecordsView({ label, toolbar, summary, pagination, className, children }: RecordsViewProps) {
   return (
-    <div className="mt-7 flex flex-col gap-4">
+    <div className={cn("flex flex-col gap-4", className ?? "mt-7")}>
       {toolbar}
       <section aria-label={label} data-pending-region="" className="min-w-0 rounded-xl border border-line bg-surface">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line px-4 py-3 text-sm text-ink-muted tabular sm:px-5">
           {summary}
         </div>
         <div className="px-1 sm:px-2">{children}</div>
-        <div className="border-t border-line px-4 py-3 sm:px-5">{pagination}</div>
+        {pagination ? <div className="border-t border-line px-4 py-3 sm:px-5">{pagination}</div> : null}
       </section>
     </div>
   );

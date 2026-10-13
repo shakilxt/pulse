@@ -36,14 +36,14 @@ describe.each(RANGE_PRESETS.flatMap((preset) => [
   const previous = summarizeComparison(dataset, state.range, compare).summary;
 
   it("computes every figure from the same summaries as the KPIs", () => {
-    const analytics = buildAnalytics(dataset, state, "revenue");
+    const analytics = buildAnalytics(dataset, state, "revenue", "USD");
     const expected = (id: (typeof COMPARISON_TABLE_METRICS)[number]) => buildMetric(id, current, previous, analytics.comparisonLabel);
     expect(analytics.comparisonTable).toEqual(COMPARISON_TABLE_METRICS.map(expected));
     expect(analytics.selector).toEqual(TREND_METRICS.map((id) => ({ id, metric: expected(id) })));
   });
 
   it.each(TREND_METRICS)("draws %s with points that reconcile with the period", (metric) => {
-    const { trend, selector } = buildAnalytics(dataset, state, metric);
+    const { trend, selector } = buildAnalytics(dataset, state, metric, "USD");
     const selected = selector.find((item) => item.id === metric)?.metric;
     const value = selected?.value;
     if (metric === "conversionRate") {
@@ -59,7 +59,7 @@ describe.each(RANGE_PRESETS.flatMap((preset) => [
   });
 
   it("splits new customers by channel and charges by status without losing any", () => {
-    const { channels, volume } = buildAnalytics(dataset, state, "revenue");
+    const { channels, volume } = buildAnalytics(dataset, state, "revenue", "USD");
     expect(sum(channels.rows, (row) => row.conversions)).toBe(current.newCustomers);
     expect(sum(channels.rows, (row) => row.visitors)).toBe(current.visitors);
     expect(sum(channels.rows, (row) => row.sharePercent)).toBe(100);
@@ -80,7 +80,7 @@ describe.each(RANGE_PRESETS.flatMap((preset) => [
 
 describe("analytics wording", () => {
   it("describes the default quarter of revenue with statistics", () => {
-    const analytics = buildAnalytics(dataset, stateFor({}), "revenue");
+    const analytics = buildAnalytics(dataset, stateFor({}), "revenue", "USD");
     expect(analytics.comparisonLabel).toBe("vs previous 90 days");
     expect(analytics.trend.summary).toBe(
       "Revenue rose 18.3% to $166,690 vs previous 90 days. The strongest week was Aug 27 – Sep 2, 2026, with $16,261.",
@@ -102,14 +102,14 @@ describe("analytics wording", () => {
   });
 
   it("reports conversion changes in percentage points", () => {
-    const { trend } = buildAnalytics(dataset, stateFor({}), "conversionRate");
+    const { trend } = buildAnalytics(dataset, stateFor({}), "conversionRate", "USD");
     expect(trend.summary).toMatch(/^The conversion rate fell 0\.01 percentage points to 1\.03% vs previous 90 days\. The highest week was /);
     expect(trend.stats[0]).toEqual({ label: "For the period", value: "1.03%", detail: "420 new customers from 40,586 visitors" });
     expect(trend.stats.map((stat) => stat.label)).toEqual(["For the period", "Highest week", "Lowest week", "Previous period"]);
   });
 
   it("names the comparison as last year and says when it has no data", () => {
-    const analytics = buildAnalytics(dataset, stateFor({ from: "2024-03-01", to: "2024-05-31", compare: "previous-year" }), "newCustomers");
+    const analytics = buildAnalytics(dataset, stateFor({ from: "2024-03-01", to: "2024-05-31", compare: "previous-year" }), "newCustomers", "USD");
     expect(analytics.comparison.summary).toBeNull();
     expect(analytics.trend.summary).toMatch(/^New customers totalled 187\. There is no comparison data for the same period last year\./);
     expect(analytics.trend.stats.at(-1)).toEqual({ label: "Same period last year", value: "—", detail: "No data for this period" });
@@ -118,18 +118,18 @@ describe("analytics wording", () => {
 
   it("falls back to empty states for a day without orders", () => {
     const state = stateFor({ from: "2024-01-21", to: "2024-01-21" });
-    const revenue = buildAnalytics(dataset, state, "revenue");
+    const revenue = buildAnalytics(dataset, state, "revenue", "USD");
     expect(revenue.trend.empty).toBe(true);
     expect(revenue.trend.peakDate).toBeNull();
     expect(revenue.trend.summary).toBe("No revenue was recorded in this period.");
     expect(revenue.trend.stats.map((stat) => stat.label)).toEqual(["Total", "Daily average", "Previous period"]);
-    expect(buildAnalytics(dataset, state, "orders").trend.summary).toBe("No completed orders were recorded in this period.");
+    expect(buildAnalytics(dataset, state, "orders", "USD").trend.summary).toBe("No completed orders were recorded in this period.");
   });
 
   it("agrees with the overview on the same period", () => {
     const state = stateFor({ range: "30d" });
-    const analytics = buildAnalytics(dataset, state, "revenue");
-    const overview = buildOverview(dataset, state, "Fernhill Studio");
+    const analytics = buildAnalytics(dataset, state, "revenue", "USD");
+    const overview = buildOverview(dataset, state, { workspaceName: "Fernhill Studio", currency: "USD" });
     expect(analytics.trend.points).toEqual(overview.revenue.points);
     expect(analytics.trend.summary).toBe(overview.revenue.summary);
     expect(analytics.cashflow).toEqual(overview.cashflow);

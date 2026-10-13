@@ -26,7 +26,7 @@ const THEME_OPTIONS: Array<{ value: ThemePreference; label: string; icon: Lucide
  * The demo persona, a link to settings and the theme choice. There is no
  * account, so there is deliberately no sign-out.
  */
-export function ProfileMenu() {
+export function ProfileMenu({ workspaceName }: { workspaceName: string | null }) {
   const theme = useThemePreference();
   const { profile } = WORKSPACE;
 
@@ -54,7 +54,8 @@ export function ProfileMenu() {
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-ink">{profile.name}</p>
             <p className="truncate text-xs text-ink-muted">
-              {profile.role} · {WORKSPACE.name}
+              {profile.role}
+              {workspaceName ? ` · ${workspaceName}` : null}
             </p>
           </div>
         </div>

@@ -16,13 +16,14 @@ import {
   type CustomerStatusFilter,
 } from "@/lib/customers";
 import { formatDate, formatInteger, formatMoney } from "@/lib/formatters";
+import type { CurrencyCode } from "@/lib/money";
 import { PARAM, hrefWithParams, nextSort, serializeSort, sortToParam } from "@/lib/search-params";
 import { customerPanel } from "./customer-details";
 import { NoMatchingRecords, RecordsView } from "./records-view";
 
 const PATH = "/customers";
 
-const COLUMNS: DataTableColumn<CustomerRow, CustomerSortKey>[] = [
+const columnsFor = (currency: CurrencyCode): DataTableColumn<CustomerRow, CustomerSortKey>[] => [
   {
     id: "name",
     header: "Customer",
@@ -72,7 +73,7 @@ const COLUMNS: DataTableColumn<CustomerRow, CustomerSortKey>[] = [
     align: "end",
     cell: (row) => (
       <span className="flex flex-col items-end gap-1">
-        <span className="font-medium whitespace-nowrap tabular">{formatMoney(row.totalSpendMinor)}</span>
+        <span className="font-medium whitespace-nowrap tabular">{formatMoney(row.totalSpendMinor, currency)}</span>
         {/* Phones drop the status column; the badge rides under the amount instead. */}
         <StatusBadge status={row.status} className="sm:hidden" />
       </span>
@@ -84,10 +85,11 @@ interface CustomerTableProps {
   list: CustomerList;
   /** The current query string, so links keep every other parameter. */
   search: string;
+  currency: CurrencyCode;
 }
 
 /** The customer directory: search, status filter, the table with detail drawers, and pagination. */
-export function CustomerTable({ list, search }: CustomerTableProps) {
+export function CustomerTable({ list, search, currency }: CustomerTableProps) {
   const { query, page, statusCounts } = list;
   const resetHref = hrefWithParams(PATH, search, { [PARAM.query]: null, [PARAM.status]: null, [PARAM.page]: null });
   const sortLabel = CUSTOMER_SORT_LABELS[query.sort.key];
@@ -105,7 +107,7 @@ export function CustomerTable({ list, search }: CustomerTableProps) {
   const panels = Object.fromEntries(
     page.rows.map((row) => {
       const activity = list.activity[row.id] ?? { recent: [], transactionCount: 0 };
-      return [row.id, customerPanel(row, activity, list.activeWindow)];
+      return [row.id, customerPanel(row, activity, list.activeWindow, currency)];
     }),
   );
 
@@ -162,7 +164,7 @@ export function CustomerTable({ list, search }: CustomerTableProps) {
       <RecordDrawer panels={panels} noun="customer">
         <DataTable
           caption={`Customers sorted by ${sortLabel.label}, ${sortLabel[query.sort.direction]}${list.filtered ? ", filtered" : ""}`}
-          columns={COLUMNS}
+          columns={columnsFor(currency)}
           rows={page.rows}
           getRowId={(row) => row.id}
           sort={query.sort}

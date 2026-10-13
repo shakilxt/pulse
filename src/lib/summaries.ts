@@ -9,6 +9,7 @@ import type { PeriodSummary } from "./aggregations";
 import { safeRatio } from "./calculations";
 import { type CashflowPoint, type TrendPoint, bucketNoun } from "./chart-series";
 import type { ComparisonMode, Granularity } from "./dates";
+import type { CurrencyCode } from "./money";
 import { formatMetricValue, formatMoney, formatPercent } from "./formatters";
 import { type TrendMetricId, TREND_METRIC_VALUES, metricChange } from "./metrics";
 
@@ -61,6 +62,7 @@ export function trendSummary({
   granularity,
   mode,
   peak,
+  currency,
 }: {
   id: TrendMetricId;
   metric: DashboardMetric;
@@ -68,12 +70,13 @@ export function trendSummary({
   granularity: Granularity;
   mode: ComparisonMode;
   peak: TrendPoint | undefined;
+  currency: CurrencyCode;
 }): string {
   const { subject, empty } = TREND_WORDING[id];
   if (metric.value === null || isEmptyTrend(id, metric)) return empty;
 
   const sum = TREND_METRIC_VALUES[id].aggregation === "sum";
-  const value = formatMetricValue(metric.value, metric.format);
+  const value = formatMetricValue(metric.value, metric.format, currency);
   const stated = sum ? `${subject} totalled ${value}` : `${subject} was ${value}`;
   const change = metricChange(metric);
 
@@ -101,16 +104,21 @@ export function trendSummary({
   }
 
   if (points.length <= 1 || !peak || peak.value === null) return trend;
-  const peakValue = formatMetricValue(peak.value, metric.format);
+  const peakValue = formatMetricValue(peak.value, metric.format, currency);
   const noun = bucketNoun(granularity);
   return sum
     ? `${trend} The strongest ${noun} was ${peak.label}, with ${peakValue}.`
     : `${trend} The highest ${noun} was ${peak.label}, at ${peakValue}.`;
 }
 
-export function cashflowSummary(points: readonly CashflowPoint[], current: PeriodSummary, granularity: Granularity): string {
-  const expenses = formatMoney(current.expensesMinor, { whole: true });
-  const profit = formatMoney(Math.abs(current.profitMinor), { whole: true });
+export function cashflowSummary(
+  points: readonly CashflowPoint[],
+  current: PeriodSummary,
+  granularity: Granularity,
+  currency: CurrencyCode,
+): string {
+  const expenses = formatMoney(current.expensesMinor, currency, { whole: true });
+  const profit = formatMoney(Math.abs(current.profitMinor), currency, { whole: true });
   const margin = safeRatio(current.profitMinor, current.revenueMinor);
   const result =
     current.profitMinor >= 0

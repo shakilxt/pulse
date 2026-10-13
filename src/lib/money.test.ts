@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   averageMinor,
+  DEMO_EXCHANGE_RATES_BPS,
   basisPointsOf,
+  convertAllocated,
   convertMinor,
   isCurrencyCode,
   minorToDecimalString,
@@ -53,5 +55,28 @@ describe("money", () => {
     expect(isCurrencyCode("eur")).toBe(false);
     expect(isCurrencyCode("JPY")).toBe(false);
     expect(isCurrencyCode(undefined)).toBe(false);
+  });
+});
+
+describe("convertAllocated", () => {
+  it("keeps base-currency amounts unchanged", () => {
+    expect(convertAllocated([1, 2, 3], "USD")).toEqual([1, 2, 3]);
+  });
+
+  it("converts parts so they add up to the converted total", () => {
+    const amounts = [333, 333, 334, 1_005, 7, 0, 12_345_678];
+    for (const currency of ["EUR", "GBP"] as const) {
+      const parts = convertAllocated(amounts, currency);
+      expect(parts.reduce((sum, value) => sum + value, 0)).toBe(convertMinor(amounts.reduce((a, b) => a + b, 0), currency));
+      parts.forEach((part, index) => {
+        const exact = ((amounts[index] ?? 0) * DEMO_EXCHANGE_RATES_BPS[currency]) / 10_000;
+        expect(Math.abs(part - exact)).toBeLessThan(1);
+      });
+    }
+  });
+
+  it("rejects negative and fractional amounts", () => {
+    expect(() => convertAllocated([10, -1], "EUR")).toThrow(RangeError);
+    expect(() => convertAllocated([1.5], "EUR")).toThrow(RangeError);
   });
 });

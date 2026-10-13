@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AnalyticsSkeleton } from "@/components/analytics/analytics-skeleton";
-import { AnalyticsToolbar } from "@/components/analytics/analytics-toolbar";
 import { ChannelBreakdown } from "@/components/analytics/channel-breakdown";
 import { PeriodComparison } from "@/components/analytics/period-comparison";
 import { TransactionVolume } from "@/components/analytics/transaction-volume";
 import { TrendExplorer } from "@/components/analytics/trend-explorer";
 import { CashflowPanel } from "@/components/dashboard/cashflow-panel";
+import { PeriodToolbar } from "@/components/filters/period-toolbar";
 import { PageHeader } from "@/components/layout/page-header";
 import { getDataset } from "@/data";
 import { ANALYTICS_DEFAULT_PRESET, type Analytics, buildAnalytics, parseTrendMetric } from "@/lib/analytics";
-import type { DateRange } from "@/lib/dates";
+import type { DateRange, RangePreset } from "@/lib/dates";
 import { type DateRangeState, PARAM, type SearchParamsRecord, parseDateRangeParams } from "@/lib/search-params";
+import { resolveDefaultPeriod } from "@/lib/settings";
+import { getSettings } from "@/lib/settings.server";
 
 export const metadata: Metadata = {
   title: "Analytics",
@@ -19,14 +21,17 @@ export const metadata: Metadata = {
 
 interface AnalyticsData {
   state: DateRangeState;
+  defaultPreset: RangePreset;
   analytics: Analytics;
 }
 
 async function loadAnalytics(searchParams: Promise<SearchParamsRecord>): Promise<AnalyticsData> {
-  const params = await searchParams;
+  const [params, settings] = await Promise.all([searchParams, getSettings()]);
   const dataset = getDataset();
-  const state = parseDateRangeParams(params, { bounds: dataset.span, defaultPreset: ANALYTICS_DEFAULT_PRESET });
-  return { state, analytics: buildAnalytics(dataset, state, parseTrendMetric(params[PARAM.metric])) };
+  const defaultPreset = resolveDefaultPeriod(settings, ANALYTICS_DEFAULT_PRESET);
+  const state = parseDateRangeParams(params, { bounds: dataset.span, defaultPreset });
+  const metric = parseTrendMetric(params[PARAM.metric]);
+  return { state, defaultPreset, analytics: buildAnalytics(dataset, state, metric, settings.currency) };
 }
 
 /**
@@ -55,14 +60,15 @@ export default function AnalyticsPage({ searchParams }: PageProps<"/analytics">)
 }
 
 async function AnalyticsContent({ data, bounds }: { data: Promise<AnalyticsData>; bounds: DateRange }) {
-  const { state, analytics } = await data;
+  const { state, defaultPreset, analytics } = await data;
+  const { currency } = analytics;
   const comparisonRange = analytics.comparison.summary ? analytics.comparison.range : null;
   return (
     <>
-      <AnalyticsToolbar
+      <PeriodToolbar
         state={state}
         bounds={bounds}
-        defaultPreset={ANALYTICS_DEFAULT_PRESET}
+        defaultPreset={defaultPreset}
         comparisonRange={comparisonRange}
       />
       <TrendExplorer analytics={analytics} />
@@ -70,6 +76,7 @@ async function AnalyticsContent({ data, bounds }: { data: Promise<AnalyticsData>
         {...analytics.cashflow}
         revenueMinor={analytics.current.revenueMinor}
         profitMinor={analytics.current.profitMinor}
+        currency={currency}
         className="lg:col-span-7"
       />
       <PeriodComparison
@@ -77,6 +84,7 @@ async function AnalyticsContent({ data, bounds }: { data: Promise<AnalyticsData>
         range={analytics.range}
         comparisonRange={comparisonRange}
         comparisonLabel={analytics.comparisonLabel}
+        currency={currency}
         className="lg:col-span-5"
       />
       <ChannelBreakdown
@@ -90,6 +98,7 @@ async function AnalyticsContent({ data, bounds }: { data: Promise<AnalyticsData>
         rows={analytics.volume.rows}
         total={analytics.volume.total}
         summary={analytics.volume.summary}
+        currency={currency}
         className="lg:col-span-5"
       />
     </>

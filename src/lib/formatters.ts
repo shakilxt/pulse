@@ -6,7 +6,7 @@
 import type { MetricFormat } from "@/types/domain";
 import type { Change } from "./calculations";
 import { type DateRange, type IsoDate, toUtcDate } from "./dates";
-import { BASE_CURRENCY, type CurrencyCode, toMajor } from "./money";
+import { type CurrencyCode, convertForDisplay, toMajor } from "./money";
 
 export const LOCALE = "en-US";
 
@@ -37,15 +37,27 @@ function dateFormat(options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
 // Numbers and money
 
 export interface MoneyFormatOptions {
-  currency?: CurrencyCode;
   /** "$84.2K" style, for KPI tiles and chart axes. */
   compact?: boolean;
   /** Drop the cents ("$84,210"). */
   whole?: boolean;
 }
 
-export function formatMoney(amountMinor: number, options: MoneyFormatOptions = {}): string {
-  const { currency = BASE_CURRENCY, compact = false, whole = false } = options;
+/**
+ * Formats a ledger amount in the visitor's display currency. Amounts are
+ * always base-currency minor units; anything else is converted at the fixed
+ * demo rate first, so a figure can never be shown in the wrong unit.
+ */
+export function formatMoney(amountMinor: number, currency: CurrencyCode, options: MoneyFormatOptions = {}): string {
+  return formatMinorIn(convertForDisplay(amountMinor, currency), currency, options);
+}
+
+/**
+ * Formats minor units that are already in `currency`, such as chart axis
+ * ticks drawn on a converted scale. Ledger amounts go through `formatMoney`.
+ */
+export function formatMinorIn(amountMinor: number, currency: CurrencyCode, options: MoneyFormatOptions = {}): string {
+  const { compact = false, whole = false } = options;
   const format = compact
     ? numberFormat({
         style: "currency",
@@ -70,6 +82,19 @@ export function formatInteger(value: number): string {
 /** A number with a fixed count of decimals: 11.7. */
 export function formatDecimal(value: number, digits = 1): string {
   return numberFormat({ minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
+}
+
+/**
+ * A plain number for data files: fixed decimals, no grouping, a minus sign
+ * only when negative. Rounds exactly as the display formatters do.
+ */
+export function formatPlainNumber(value: number, digits: number): string {
+  return numberFormat({
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+    useGrouping: false,
+    signDisplay: "negative",
+  }).format(value);
 }
 
 export function formatCompactNumber(value: number): string {
@@ -115,11 +140,11 @@ export function formatChange(change: Change, digits = 1): string {
  * A KPI value in its own format: whole currency, a count, or a percentage with
  * two decimals (conversion rates sit near 1%, where one decimal hides real moves).
  */
-export function formatMetricValue(value: number | null, format: MetricFormat): string {
+export function formatMetricValue(value: number | null, format: MetricFormat, currency: CurrencyCode): string {
   if (value === null) return "—";
   switch (format) {
     case "currency":
-      return formatMoney(value, { whole: true });
+      return formatMoney(value, currency, { whole: true });
     case "integer":
       return formatInteger(value);
     case "percentage":
@@ -128,10 +153,10 @@ export function formatMetricValue(value: number | null, format: MetricFormat): s
 }
 
 /** A value for chart axes and point labels: "$5.9K", "1.2K", "1.4%". */
-export function formatCompactMetric(value: number, format: MetricFormat): string {
+export function formatCompactMetric(value: number, format: MetricFormat, currency: CurrencyCode): string {
   switch (format) {
     case "currency":
-      return formatMoney(value, { compact: true });
+      return formatMoney(value, currency, { compact: true });
     case "integer":
       return formatCompactNumber(value);
     case "percentage":

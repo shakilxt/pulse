@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
@@ -8,9 +8,13 @@ import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { DemoNote } from "./demo-note";
 import { PrimaryNavLinks, SettingsNavLink } from "./nav-links";
-import { WorkspaceIdentity } from "./workspace-identity";
 
-export function MobileNav() {
+interface MobileNavProps {
+  /** The workspace identity, rendered on the server because it reads saved settings. */
+  identity: ReactNode;
+}
+
+export function MobileNav({ identity }: MobileNavProps) {
   const pathname = usePathname();
   // Track the path the drawer was opened on: any route change (link, back/forward) closes it.
   const [openedOn, setOpenedOn] = useState<string | null>(null);
@@ -44,7 +48,7 @@ export function MobileNav() {
           </div>
           <DialogPrimitive.Title className="sr-only">Navigation</DialogPrimitive.Title>
           <nav aria-label="Primary" className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pt-2 pb-6">
-            <WorkspaceIdentity />
+            {identity}
             <PrimaryNavLinks layout="drawer" onNavigate={close} />
             <div className="mt-auto flex flex-col gap-4">
               <DemoNote />

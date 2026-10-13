@@ -66,6 +66,42 @@ export function convertMinor(amountMinor: number, to: CurrencyCode): number {
   return roundHalfAwayFromZero((assertMinor(amountMinor) * DEMO_EXCHANGE_RATES_BPS[to]) / 10_000);
 }
 
+/**
+ * Converts several non-negative amounts so the converted parts add up exactly
+ * to the converted total (largest-remainder rounding). A report table and its
+ * total row then reconcile in every currency, not only the base one.
+ */
+export function convertAllocated(amounts: readonly number[], to: CurrencyCode): number[] {
+  for (const amount of amounts) {
+    if (assertMinor(amount) < 0) throw new RangeError(`Expected a non-negative amount, got ${amount}`);
+  }
+  if (to === BASE_CURRENCY) return [...amounts];
+  const rate = DEMO_EXCHANGE_RATES_BPS[to];
+  const target = convertMinor(sumMinor(amounts), to);
+  const exact = amounts.map((amount) => (amount * rate) / 10_000);
+  const result = exact.map(Math.floor);
+  let remainder = target - result.reduce((sum, value) => sum + value, 0);
+  const byFraction = exact
+    .map((value, index) => ({ index, fraction: value - Math.floor(value) }))
+    .sort((a, b) => b.fraction - a.fraction || a.index - b.index);
+  for (const { index } of byFraction) {
+    if (remainder <= 0) break;
+    result[index] = (result[index] ?? 0) + 1;
+    remainder -= 1;
+  }
+  return result;
+}
+
+/**
+ * Converts any base-currency value, including non-integer ones such as chart
+ * ticks and averages, for display. Integer amounts convert exactly as
+ * `convertMinor` does.
+ */
+export function convertForDisplay(amountMinor: number, to: CurrencyCode): number {
+  if (Number.isSafeInteger(amountMinor)) return convertMinor(amountMinor, to);
+  return (amountMinor * DEMO_EXCHANGE_RATES_BPS[to]) / 10_000;
+}
+
 /** Major units as a number, for chart scales and Intl formatting. */
 export function toMajor(amountMinor: number): number {
   return amountMinor / MINOR_UNITS_PER_MAJOR;

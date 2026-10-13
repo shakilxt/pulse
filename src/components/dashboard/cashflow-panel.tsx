@@ -7,6 +7,7 @@ import { bucketNoun } from "@/lib/chart-series";
 import type { CashflowPoint } from "@/lib/chart-series";
 import type { Granularity } from "@/lib/dates";
 import { formatMetricValue, formatPercent } from "@/lib/formatters";
+import type { CurrencyCode } from "@/lib/money";
 
 interface CashflowPanelProps {
   points: readonly CashflowPoint[];
@@ -14,10 +15,11 @@ interface CashflowPanelProps {
   summary: string;
   revenueMinor: number;
   profitMinor: number;
+  currency: CurrencyCode;
   className?: string;
 }
 
-export function CashflowPanel({ points, granularity, summary, revenueMinor, profitMinor, className }: CashflowPanelProps) {
+export function CashflowPanel({ points, granularity, summary, revenueMinor, profitMinor, currency, className }: CashflowPanelProps) {
   const margin = safeRatio(profitMinor, revenueMinor);
 
   return (
@@ -29,7 +31,7 @@ export function CashflowPanel({ points, granularity, summary, revenueMinor, prof
       aside={
         <div className="text-right">
           <p className="text-xs text-ink-muted">{profitMinor >= 0 ? "Net profit" : "Net loss"}</p>
-          <p className="text-xl font-semibold text-ink tabular">{formatMetricValue(Math.abs(profitMinor), "currency")}</p>
+          <p className="text-xl font-semibold text-ink tabular">{formatMetricValue(Math.abs(profitMinor), "currency", currency)}</p>
           {margin !== null ? <p className="text-xs text-ink-muted tabular">{formatPercent(margin)} margin</p> : null}
         </div>
       }
@@ -55,14 +57,14 @@ export function CashflowPanel({ points, granularity, summary, revenueMinor, prof
           key: point.date,
           cells: [
             point.label,
-            formatMetricValue(point.revenueMinor, "currency"),
-            formatMetricValue(point.expensesMinor, "currency"),
-            formatMetricValue(point.profitMinor, "currency"),
+            formatMetricValue(point.revenueMinor, "currency", currency),
+            formatMetricValue(point.expensesMinor, "currency", currency),
+            formatMetricValue(point.profitMinor, "currency", currency),
           ],
         })),
       }}
     >
-      <CashflowChart points={points} label="Revenue and expenses chart" />
+      <CashflowChart points={points} currency={currency} label="Revenue and expenses chart" />
     </ChartFrame>
   );
 }

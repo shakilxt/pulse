@@ -5,7 +5,9 @@ import { CustomerTable } from "@/components/records/customer-table";
 import { RecordsSkeleton } from "@/components/records/records-view";
 import { getDataset } from "@/data";
 import { type CustomerList, listCustomers, parseCustomerQuery } from "@/lib/customers";
+import type { CurrencyCode } from "@/lib/money";
 import { type SearchParamsRecord, toUrlSearchParams } from "@/lib/search-params";
+import { getSettings } from "@/lib/settings.server";
 
 export const metadata: Metadata = {
   title: "Customers",
@@ -14,11 +16,13 @@ export const metadata: Metadata = {
 interface CustomersData {
   list: CustomerList;
   search: string;
+  currency: CurrencyCode;
 }
 
 async function loadCustomers(searchParams: Promise<SearchParamsRecord>): Promise<CustomersData> {
-  const params = await searchParams;
+  const [params, settings] = await Promise.all([searchParams, getSettings()]);
   return {
+    currency: settings.currency,
     list: listCustomers(getDataset(), parseCustomerQuery(params)),
     search: toUrlSearchParams(params).toString(),
   };
@@ -42,6 +46,6 @@ export default function CustomersPage({ searchParams }: PageProps<"/customers">)
 }
 
 async function CustomersContent({ data }: { data: Promise<CustomersData> }) {
-  const { list, search } = await data;
-  return <CustomerTable list={list} search={search} />;
+  const { list, search, currency } = await data;
+  return <CustomerTable list={list} search={search} currency={currency} />;
 }

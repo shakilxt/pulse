@@ -20,7 +20,7 @@ const point: TrendPoint = {
   previousValue: null,
   previousLabel: null,
 };
-const base = { points: [point, { ...point, date: "2026-09-25" }], granularity: "day", mode: "previous-period", peak: point } as const;
+const base = { points: [point, { ...point, date: "2026-09-25" }], granularity: "day", mode: "previous-period", peak: point, currency: "USD" } as const;
 
 describe("trendSummary", () => {
   it("calls tiny moves in line and growth from nothing new", () => {

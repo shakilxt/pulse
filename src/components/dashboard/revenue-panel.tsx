@@ -25,7 +25,7 @@ export function RevenuePanel({ overview }: { overview: Overview }) {
         metric ? (
           <div className="text-right">
             <p className="text-[32px] leading-none font-semibold tracking-tight text-ink tabular">
-              {formatMetricValue(metric.value, metric.format)}
+              {formatMetricValue(metric.value, metric.format, overview.currency)}
             </p>
             {change ? (
               <p className="mt-2 flex items-center justify-end gap-2 text-xs text-ink-muted">
@@ -60,8 +60,8 @@ export function RevenuePanel({ overview }: { overview: Overview }) {
           key: point.date,
           cells: [
             point.label,
-            formatMetricValue(point.value, "currency"),
-            ...(comparison ? [formatMetricValue(point.previousValue, "currency"), point.previousLabel ?? "—"] : []),
+            formatMetricValue(point.value, "currency", overview.currency),
+            ...(comparison ? [formatMetricValue(point.previousValue, "currency", overview.currency), point.previousLabel ?? "—"] : []),
           ],
         })),
       }}
@@ -69,6 +69,7 @@ export function RevenuePanel({ overview }: { overview: Overview }) {
       <TrendChart
         points={points}
         format="currency"
+        currency={overview.currency}
         seriesLabel="Revenue"
         comparisonName={comparisonName}
         variant="area"

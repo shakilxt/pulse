@@ -16,24 +16,30 @@ import type { DateRange, RangePreset } from "@/lib/dates";
 import { formatDate } from "@/lib/formatters";
 import { type Overview, buildOverview, salutationFor } from "@/lib/overview";
 import { type DateRangeState, type SearchParamsRecord, parseDateRangeParams } from "@/lib/search-params";
+import { resolveDefaultPeriod } from "@/lib/settings";
+import { getSettings } from "@/lib/settings.server";
 import { WORKSPACE } from "@/lib/workspace";
 
 export const metadata: Metadata = {
   title: "Overview",
 };
 
-const DEFAULT_PRESET: RangePreset = "30d";
+/** The period the overview opens on unless a different default is saved in settings. */
+const PAGE_DEFAULT_PRESET: RangePreset = "30d";
 
 interface OverviewData {
   state: DateRangeState;
+  defaultPreset: RangePreset;
   overview: Overview;
 }
 
 async function loadOverview(searchParams: Promise<SearchParamsRecord>): Promise<OverviewData> {
-  const params = await searchParams;
+  const [params, settings] = await Promise.all([searchParams, getSettings()]);
   const dataset = getDataset();
-  const state = parseDateRangeParams(params, { bounds: dataset.span, defaultPreset: DEFAULT_PRESET });
-  return { state, overview: buildOverview(dataset, state, WORKSPACE.name) };
+  const defaultPreset = resolveDefaultPeriod(settings, PAGE_DEFAULT_PRESET);
+  const state = parseDateRangeParams(params, { bounds: dataset.span, defaultPreset });
+  const overview = buildOverview(dataset, state, { workspaceName: settings.workspaceName, currency: settings.currency });
+  return { state, defaultPreset, overview };
 }
 
 /**
@@ -80,27 +86,29 @@ async function GreetingSummary({ data }: { data: Promise<OverviewData> }) {
 }
 
 async function OverviewContent({ data, bounds }: { data: Promise<OverviewData>; bounds: DateRange }) {
-  const { state, overview } = await data;
+  const { state, defaultPreset, overview } = await data;
+  const { currency } = overview;
   return (
     <>
       <PeriodPanel
         state={state}
         bounds={bounds}
-        defaultPreset={DEFAULT_PRESET}
+        defaultPreset={defaultPreset}
         comparisonRange={overview.comparison.summary ? overview.comparison.range : null}
       />
-      <MetricStrip metrics={overview.metrics} />
+      <MetricStrip metrics={overview.metrics} currency={currency} />
       <RevenuePanel overview={overview} />
-      <RevenueBreakdown categories={overview.categories} totalMinor={overview.current.revenueMinor} />
+      <RevenueBreakdown categories={overview.categories} totalMinor={overview.current.revenueMinor} currency={currency} />
       <CashflowPanel
         {...overview.cashflow}
         revenueMinor={overview.current.revenueMinor}
         profitMinor={overview.current.profitMinor}
+        currency={currency}
         className="lg:col-span-7"
       />
       <AcquisitionPanel overview={overview} />
-      <RecentTransactions rows={overview.recentTransactions} />
-      <TopProducts products={overview.topProducts} />
+      <RecentTransactions rows={overview.recentTransactions} currency={currency} />
+      <TopProducts products={overview.topProducts} currency={currency} />
     </>
   );
 }

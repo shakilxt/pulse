@@ -19,7 +19,7 @@ export function AcquisitionPanel({ overview }: { overview: Overview }) {
         <div className="text-right">
           <p className="text-xs text-ink-muted">New customers</p>
           <p className="text-xl font-semibold text-ink tabular">{formatInteger(newCustomers)}</p>
-          <p className="text-xs text-ink-muted tabular">{formatMetricValue(conversionRate, "percentage")} conversion</p>
+          <p className="text-xs text-ink-muted tabular">{formatMetricValue(conversionRate, "percentage", overview.currency)} conversion</p>
         </div>
       }
       summary={summary}
@@ -39,7 +39,7 @@ export function AcquisitionPanel({ overview }: { overview: Overview }) {
             point.label,
             formatInteger(point.newCustomers),
             formatInteger(point.visitors),
-            formatMetricValue(point.conversionRate, "percentage"),
+            formatMetricValue(point.conversionRate, "percentage", overview.currency),
           ],
         })),
       }}

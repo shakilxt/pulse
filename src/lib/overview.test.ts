@@ -15,7 +15,7 @@ import { type DateRangeState, parseDateRangeParams } from "./search-params";
 const dataset = generateDataset();
 const stateFor = (params: Record<string, string>) =>
   parseDateRangeParams(params, { bounds: dataset.span, defaultPreset: "30d" });
-const overviewFor = (state: DateRangeState) => buildOverview(dataset, state, "Fernhill Studio");
+const overviewFor = (state: DateRangeState) => buildOverview(dataset, state, { workspaceName: "Fernhill Studio", currency: "USD" });
 
 describe.each(RANGE_PRESETS)("overview for %s", (preset) => {
   const state = stateFor({ range: preset });

@@ -34,6 +34,7 @@ import {
   comparisonSeriesName,
   describeComparison,
 } from "./metrics";
+import type { CurrencyCode } from "./money";
 import { CASHFLOW_MAX_POINTS, type SourceShare, sourceShares } from "./overview";
 import { type DateRangeState, type SearchParamValue, parseEnumParam } from "./search-params";
 import { cashflowSummary, isEmptyTrend, trendSummary } from "./summaries";
@@ -90,6 +91,8 @@ export interface StatusVolume {
 }
 
 export interface Analytics {
+  /** The display currency every money figure and summary is written in. */
+  currency: CurrencyCode;
   range: DateRange;
   granularity: Granularity;
   comparison: Comparison;
@@ -126,6 +129,7 @@ function trendStats({
   comparison,
   mode,
   extremes,
+  currency,
 }: {
   id: TrendMetricId;
   metric: DashboardMetric;
@@ -135,8 +139,9 @@ function trendStats({
   comparison: Comparison;
   mode: ComparisonMode;
   extremes: ReturnType<typeof trendExtremes>;
+  currency: CurrencyCode;
 }): MetricStat[] {
-  const format = (value: number | null) => formatMetricValue(value, metric.format);
+  const format = (value: number | null) => formatMetricValue(value, metric.format, currency);
   const sum = TREND_METRIC_VALUES[id].aggregation === "sum";
   const noun = bucketNoun(granularity);
   const stats: MetricStat[] = [];
@@ -148,7 +153,7 @@ function trendStats({
       { label: "Total", value: format(metric.value), detail: null },
       {
         label: "Daily average",
-        value: metric.format === "currency" ? formatMoney(average, { whole: true }) : formatDecimal(average),
+        value: metric.format === "currency" ? formatMoney(average, currency, { whole: true }) : formatDecimal(average),
         detail: days === 1 ? "over 1 day" : `over ${formatInteger(days)} days`,
       },
     );
@@ -223,7 +228,12 @@ function volumeSummary(rows: readonly StatusVolume[], total: number): string {
   return `${charges} attempted: ${share("completed")} completed, ${share("pending")} ${share("pending") === "none" ? "is" : "are"} pending, ${share("refunded")} ${share("refunded") === "none" ? "was" : "were"} refunded and ${share("failed")} failed.`;
 }
 
-export function buildAnalytics(dataset: Dataset, state: DateRangeState, metricId: TrendMetricId): Analytics {
+export function buildAnalytics(
+  dataset: Dataset,
+  state: DateRangeState,
+  metricId: TrendMetricId,
+  currency: CurrencyCode,
+): Analytics {
   const { range, comparison: mode } = state;
   const frame = seriesFrame(range);
   const current = summarizePeriod(dataset, range);
@@ -252,6 +262,7 @@ export function buildAnalytics(dataset: Dataset, state: DateRangeState, metricId
   const cashflowPoints = cashflowSeries(dataset, cashflowFrame);
 
   return {
+    currency,
     range,
     granularity: frame.granularity,
     comparison,
@@ -267,9 +278,9 @@ export function buildAnalytics(dataset: Dataset, state: DateRangeState, metricId
       variant: aggregation === "sum" ? "area" : "line",
       points,
       peakDate: points.length > 1 && !empty ? (extremes.highest?.date ?? null) : null,
-      summary: trendSummary({ id: metricId, metric, points, granularity: frame.granularity, mode, peak: extremes.highest }),
+      summary: trendSummary({ id: metricId, metric, points, granularity: frame.granularity, mode, peak: extremes.highest, currency }),
       empty,
-      stats: trendStats({ id: metricId, metric, current, points, granularity: frame.granularity, comparison, mode, extremes }),
+      stats: trendStats({ id: metricId, metric, current, points, granularity: frame.granularity, comparison, mode, extremes, currency }),
       statsNote:
         extremes.skippedPartial && !empty
           ? `Strongest and weakest leave out the partial ${bucketNoun(frame.granularity)} at the edge of the range.`
@@ -279,7 +290,7 @@ export function buildAnalytics(dataset: Dataset, state: DateRangeState, metricId
     cashflow: {
       points: cashflowPoints,
       granularity: cashflowFrame.granularity,
-      summary: cashflowSummary(cashflowPoints, current, cashflowFrame.granularity),
+      summary: cashflowSummary(cashflowPoints, current, cashflowFrame.granularity, currency),
     },
     channels: { rows: channels, summary: channelSummary(channels, current.newCustomers) },
     volume: { rows: volume, total: totalCharges, summary: volumeSummary(volume, totalCharges) },

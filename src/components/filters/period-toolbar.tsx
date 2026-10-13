@@ -10,7 +10,9 @@ const COMPARISON_OPTIONS = [
   { value: "previous-year", label: "Same period last year" },
 ] as const satisfies ReadonlyArray<{ value: ComparisonMode; label: string }>;
 
-interface AnalyticsToolbarProps {
+interface PeriodToolbarProps {
+  /** Names the region: "Report period". */
+  label?: string;
   state: DateRangeState;
   bounds: DateRange;
   defaultPreset: RangePreset;
@@ -18,11 +20,11 @@ interface AnalyticsToolbarProps {
   comparisonRange: DateRange | null;
 }
 
-/** The two choices that scope every figure on the page, in one row above the charts. */
-export function AnalyticsToolbar({ state, bounds, defaultPreset, comparisonRange }: AnalyticsToolbarProps) {
+/** The period and the comparison that scope every figure on the page, in one row above the content. */
+export function PeriodToolbar({ label = "Report period", state, bounds, defaultPreset, comparisonRange }: PeriodToolbarProps) {
   return (
     <section
-      aria-label="Report period"
+      aria-label={label}
       className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 lg:col-span-12"
     >
       <DateRangePicker value={state} bounds={bounds} defaultPreset={defaultPreset} className="sm:min-w-64" />

@@ -2,28 +2,34 @@
 
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
 import type { CashflowPoint } from "@/lib/chart-series";
-import { formatMoney } from "@/lib/formatters";
+import { formatMinorIn, formatMoney } from "@/lib/formatters";
+import { type CurrencyCode, convertForDisplay } from "@/lib/money";
 import { AXIS_TICK, BAR_RADIUS, CASHFLOW_SERIES, CHART_COLORS, CHART_MARGIN, MAX_BAR_SIZE, Y_AXIS_WIDTH } from "./chart-theme";
 import { ChartTooltipCard } from "./chart-tooltip";
 import { useReducedMotion } from "./use-reduced-motion";
 
 interface CashflowChartProps {
   points: readonly CashflowPoint[];
+  currency: CurrencyCode;
   label: string;
 }
 
-const compactMoney = (value: number) => formatMoney(value, { compact: true });
-const wholeMoney = (value: number) => formatMoney(value, { whole: true });
-
 /** Revenue and expenses side by side on one money axis, with net profit in the readout. */
-export function CashflowChart({ points, label }: CashflowChartProps) {
+export function CashflowChart({ points, currency, label }: CashflowChartProps) {
   const reducedMotion = useReducedMotion();
+  const wholeMoney = (value: number) => formatMoney(value, currency, { whole: true });
+  // Bars are drawn on a scale in the display currency so the axis ticks land on round amounts.
+  const data = points.map((point) => ({
+    ...point,
+    revenueMinor: convertForDisplay(point.revenueMinor, currency),
+    expensesMinor: convertForDisplay(point.expensesMinor, currency),
+  }));
   const axisLabels = new Map(points.map((point) => [point.date, point.axisLabel]));
 
   return (
     <BarChart
       responsive
-      data={[...points]}
+      data={data}
       margin={CHART_MARGIN}
       barGap={2}
       barCategoryGap="20%"
@@ -41,7 +47,7 @@ export function CashflowChart({ points, label }: CashflowChartProps) {
         minTickGap={24}
         tickMargin={8}
       />
-      <YAxis tickFormatter={compactMoney} tick={AXIS_TICK} tickLine={false} axisLine={false} width={Y_AXIS_WIDTH} tickCount={5} />
+      <YAxis tickFormatter={(value: number) => formatMinorIn(value, currency, { compact: true })} tick={AXIS_TICK} tickLine={false} axisLine={false} width={Y_AXIS_WIDTH} tickCount={5} />
       <Tooltip
         cursor={{ fill: "var(--surface-sunken)" }}
         isAnimationActive={false}

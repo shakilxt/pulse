@@ -1,12 +1,13 @@
 import { PackageOpen } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatInteger, formatMetricValue, formatPercent } from "@/lib/formatters";
+import type { CurrencyCode } from "@/lib/money";
 import type { TopProduct } from "@/lib/overview";
 import { Panel, PanelLink } from "./panel";
 import { ShareBar } from "./share-bar";
 
 /** The best-selling products of the period, ranked by revenue. */
-export function TopProducts({ products }: { products: readonly TopProduct[] }) {
+export function TopProducts({ products, currency }: { products: readonly TopProduct[]; currency: CurrencyCode }) {
   return (
     <Panel
       id="top-products"
@@ -36,7 +37,7 @@ export function TopProducts({ products }: { products: readonly TopProduct[] }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="truncate text-sm font-medium text-ink">{product.name}</p>
-                  <p className="text-sm font-semibold text-ink tabular">{formatMetricValue(product.revenueMinor, "currency")}</p>
+                  <p className="text-sm font-semibold text-ink tabular">{formatMetricValue(product.revenueMinor, "currency", currency)}</p>
                 </div>
                 <div className="mt-0.5 flex items-baseline justify-between gap-3 text-xs text-ink-muted tabular">
                   <span>

@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import type { RecordPanel } from "@/components/tables/record-drawer";
 import { StatusBadge } from "@/components/tables/status-badge";
 import { formatDate, formatMoney } from "@/lib/formatters";
+import { BASE_CURRENCY, type CurrencyCode } from "@/lib/money";
 import type { TransactionRow } from "@/lib/transaction-rows";
 import { DetailList, DetailRow } from "./detail-list";
 
@@ -14,10 +15,10 @@ const STATUS_NOTES: Record<TransactionRow["status"], string> = {
 };
 
 /** The detail drawer for one transaction. Illustrative only: no payment is processed. */
-export function transactionPanel(row: TransactionRow): RecordPanel {
+export function transactionPanel(row: TransactionRow, currency: CurrencyCode): RecordPanel {
   return {
     eyebrow: <span className="font-mono text-xs tracking-wide">{row.id}</span>,
-    title: formatMoney(row.amountMinor),
+    title: formatMoney(row.amountMinor, currency),
     description: `${row.productName} for ${row.customerName}`,
     content: (
       <div className="space-y-6 text-sm">
@@ -37,7 +38,12 @@ export function transactionPanel(row: TransactionRow): RecordPanel {
           </DetailRow>
           <DetailRow label="Payment method">{row.paymentMethodLabel}</DetailRow>
           <DetailRow label="Amount">
-            <span className="font-semibold tabular">{formatMoney(row.amountMinor)}</span>
+            <span className="font-semibold tabular">{formatMoney(row.amountMinor, currency)}</span>
+            {currency === BASE_CURRENCY ? null : (
+              <span className="block text-ink-muted tabular">
+                Charged as {formatMoney(row.amountMinor, BASE_CURRENCY)} {BASE_CURRENCY}, shown at the demo rate
+              </span>
+            )}
           </DetailRow>
         </DetailList>
         <Link

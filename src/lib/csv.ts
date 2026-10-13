@@ -20,17 +20,20 @@ export const CSV_MIME_TYPE = "text/csv;charset=utf-8";
 /** Text starting with these characters is run as a formula by spreadsheet apps. */
 const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
 const NEEDS_QUOTES = /[",\r\n]|^\s|\s$/;
+/** A plain decimal such as "-71.3" is data, not a formula, and must stay a number in a spreadsheet. */
+const PLAIN_NUMBER = /^[+-]?\d+(\.\d+)?$/;
 
 /**
- * Escapes one field. Numbers are written as plain digits; text that a
- * spreadsheet would evaluate as a formula is prefixed with an apostrophe
- * (OWASP CSV-injection guidance) before quoting.
+ * Escapes one field. Numbers, and strings holding a plain decimal, are
+ * written as they are; other text that a spreadsheet would evaluate as a
+ * formula is prefixed with an apostrophe (OWASP CSV-injection guidance)
+ * before quoting.
  */
 export function escapeCsvField(value: CsvValue): string {
   if (value === null || value === undefined) return "";
   if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
 
-  const text = FORMULA_TRIGGER.test(value) ? `'${value}` : value;
+  const text = FORMULA_TRIGGER.test(value) && !PLAIN_NUMBER.test(value) ? `'${value}` : value;
   return NEEDS_QUOTES.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 

@@ -16,16 +16,17 @@ import {
 
 describe("formatMoney", () => {
   it("formats minor units in the chosen currency", () => {
-    expect(formatMoney(8_421_050)).toBe("$84,210.50");
-    expect(formatMoney(8_421_050, { whole: true })).toBe("$84,211");
-    expect(formatMoney(123_450, { currency: "EUR" })).toBe("€1,234.50");
-    expect(formatMoney(-123_450, { currency: "GBP" })).toBe("-£1,234.50");
+    expect(formatMoney(8_421_050, "USD")).toBe("$84,210.50");
+    expect(formatMoney(8_421_050, "USD", { whole: true })).toBe("$84,211");
+    // Base-currency amounts are converted at the fixed demo rates before formatting.
+    expect(formatMoney(123_450, "EUR")).toBe("€1,135.74");
+    expect(formatMoney(-123_450, "GBP")).toBe("-£975.26");
   });
 
   it("abbreviates large values without padding small ones", () => {
-    expect(formatMoney(8_421_050, { compact: true })).toBe("$84.2K");
-    expect(formatMoney(123_456_700, { compact: true })).toBe("$1.2M");
-    expect(formatMoney(95_000, { compact: true })).toBe("$950");
+    expect(formatMoney(8_421_050, "USD", { compact: true })).toBe("$84.2K");
+    expect(formatMoney(123_456_700, "USD", { compact: true })).toBe("$1.2M");
+    expect(formatMoney(95_000, "USD", { compact: true })).toBe("$950");
   });
 });
 
@@ -62,10 +63,10 @@ describe("formatChange", () => {
 
 describe("KPI formatting", () => {
   it("formats each metric format and the missing value", () => {
-    expect(formatMetricValue(5_754_800, "currency")).toBe("$57,548");
-    expect(formatMetricValue(3740, "integer")).toBe("3,740");
-    expect(formatMetricValue(0.010527, "percentage")).toBe("1.05%");
-    expect(formatMetricValue(null, "currency")).toBe("—");
+    expect(formatMetricValue(5_754_800, "currency", "USD")).toBe("$57,548");
+    expect(formatMetricValue(3740, "integer", "USD")).toBe("3,740");
+    expect(formatMetricValue(0.010527, "percentage", "USD")).toBe("1.05%");
+    expect(formatMetricValue(null, "currency", "USD")).toBe("—");
     expect(formatChange({ kind: "points", value: 0.0809 }, changeDigits("percentage"))).toBe("+0.08 pp");
   });
 

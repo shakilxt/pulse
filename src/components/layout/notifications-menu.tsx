@@ -22,15 +22,18 @@ const CATEGORY_ICONS: Record<NotificationCategory, LucideIcon> = {
 };
 
 interface NotificationsMenuProps {
-  items: NotificationItem[];
+  /** The notifications in the categories switched on in settings; null while settings stream in. */
+  items: NotificationItem[] | null;
+  /** How many notifications the settings hide. */
+  hiddenCount: number;
   /** The data's last day, which relative times are measured from. */
   asOfLabel: string;
 }
 
-export function NotificationsMenu({ items, asOfLabel }: NotificationsMenuProps) {
+export function NotificationsMenu({ items, hiddenCount, asOfLabel }: NotificationsMenuProps) {
   const readIds = useReadNotificationIds();
   const isUnread = (item: NotificationItem) => !item.read && !readIds.has(item.id);
-  const unread = items.filter(isUnread);
+  const unread = (items ?? []).filter(isUnread);
 
   return (
     <DropdownMenu modal={false}>
@@ -39,6 +42,7 @@ export function NotificationsMenu({ items, asOfLabel }: NotificationsMenuProps) 
           variant="ghost"
           size="icon"
           className="relative"
+          disabled={items === null}
           aria-label={unread.length > 0 ? `Notifications, ${unread.length} unread` : "Notifications"}
         >
           <Bell aria-hidden />
@@ -70,13 +74,28 @@ export function NotificationsMenu({ items, asOfLabel }: NotificationsMenuProps) 
         </div>
         <DropdownMenuSeparator className="my-0" />
         <div className="max-h-[min(420px,60vh)] overflow-y-auto p-1.5">
-          {items.map((item) => (
+          {items?.map((item) => (
             <NotificationRow key={item.id} item={item} unread={isUnread(item)} />
           ))}
+          {items?.length === 0 ? (
+            <p className="px-2.5 py-6 text-center text-sm text-ink-muted">
+              {hiddenCount > 0 ? "Every notification type is switched off." : "No notifications."}
+            </p>
+          ) : null}
         </div>
         <DropdownMenuSeparator className="my-0" />
         <p className="px-4 py-3 text-xs leading-relaxed text-ink-muted">
           Demo notifications drawn from the sample data, timed relative to {asOfLabel}. Nothing is sent anywhere.
+          {hiddenCount > 0 ? (
+            <>
+              {" "}
+              {hiddenCount === 1 ? "1 is" : `${hiddenCount} are`} hidden by your{" "}
+              <Link href="/settings#notifications" className="font-medium text-accent-ink underline-offset-4 hover:underline">
+                notification settings
+              </Link>
+              .
+            </>
+          ) : null}
         </p>
       </DropdownMenuContent>
     </DropdownMenu>

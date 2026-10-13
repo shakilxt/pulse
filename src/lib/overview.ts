@@ -33,6 +33,7 @@ import { formatDateRange, formatInteger, formatMoney, formatPercent } from "./fo
 import { OVERVIEW_METRICS, TREND_METRIC_VALUES, buildMetric, describeComparison } from "./metrics";
 import { sortRows } from "./filters";
 import type { DateRangeState } from "./search-params";
+import type { CurrencyCode } from "./money";
 import { cashflowSummary, comparisonPeriod, isNegligible, trendSummary } from "./summaries";
 import { type TransactionRow, toTransactionRow, transactionLookups } from "./transaction-rows";
 
@@ -68,6 +69,8 @@ export interface TopProduct {
 
 
 export interface Overview {
+  /** The display currency every money figure and summary is written in. */
+  currency: CurrencyCode;
   range: DateRange;
   granularity: Granularity;
   comparison: Comparison;
@@ -124,7 +127,7 @@ function revenueComparisonPhrase(current: number, previous: number | null, compa
 }
 
 function greetingSummary(
-  workspaceName: string,
+  { workspaceName, currency }: OverviewOptions,
   state: DateRangeState,
   current: PeriodSummary,
   previous: PeriodSummary | null,
@@ -137,7 +140,7 @@ function greetingSummary(
   }
   const orders = current.orders === 1 ? "1 completed order" : `${formatInteger(current.orders)} completed orders`;
   const comparison = revenueComparisonPhrase(current.revenueMinor, previous?.revenueMinor ?? null, comparisonLabel);
-  const first = `${workspaceName} earned ${formatMoney(current.revenueMinor, { whole: true })} from ${orders} ${period}${comparison ? `, ${comparison}` : ""}.`;
+  const first = `${workspaceName} earned ${formatMoney(current.revenueMinor, currency, { whole: true })} from ${orders} ${period}${comparison ? `, ${comparison}` : ""}.`;
   return leader ? `${first} ${leader.name} led sales.` : first;
 }
 
@@ -164,7 +167,13 @@ export function sourceShares(dataset: Dataset, range: DateRange): SourceShare[] 
   }));
 }
 
-export function buildOverview(dataset: Dataset, state: DateRangeState, workspaceName: string): Overview {
+export interface OverviewOptions {
+  /** The workspace as the visitor named it in settings. */
+  workspaceName: string;
+  currency: CurrencyCode;
+}
+
+export function buildOverview(dataset: Dataset, state: DateRangeState, options: OverviewOptions): Overview {
   const { range } = state;
   const frame = seriesFrame(range);
   const current = summarizePeriod(dataset, range);
@@ -203,6 +212,7 @@ export function buildOverview(dataset: Dataset, state: DateRangeState, workspace
   const cashflowPoints = cashflowSeries(dataset, cashflowFrame);
 
   return {
+    currency: options.currency,
     range,
     granularity: frame.granularity,
     comparison,
@@ -213,7 +223,7 @@ export function buildOverview(dataset: Dataset, state: DateRangeState, workspace
     metrics,
     greeting: {
       salutation: salutationFor(dataset.now),
-      summary: greetingSummary(workspaceName, state, current, comparison.summary, comparisonLabel, topProducts[0]),
+      summary: greetingSummary(options, state, current, comparison.summary, comparisonLabel, topProducts[0]),
     },
     revenue: {
       points: revenuePoints,
@@ -225,12 +235,13 @@ export function buildOverview(dataset: Dataset, state: DateRangeState, workspace
         granularity: frame.granularity,
         mode: state.comparison,
         peak: revenuePeak,
+        currency: options.currency,
       }),
     },
     cashflow: {
       points: cashflowPoints,
       granularity: cashflowFrame.granularity,
-      summary: cashflowSummary(cashflowPoints, current, cashflowFrame.granularity),
+      summary: cashflowSummary(cashflowPoints, current, cashflowFrame.granularity, options.currency),
     },
     acquisition: {
       points: acquisitionTrend(dataset, frame),

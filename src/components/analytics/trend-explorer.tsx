@@ -34,7 +34,7 @@ export function TrendExplorer({ analytics }: { analytics: Analytics }) {
     return {
       value: id,
       label: TREND_METRIC_LABELS[id],
-      figure: formatMetricValue(metric.value, metric.format),
+      figure: formatMetricValue(metric.value, metric.format, analytics.currency),
       change,
       sentiment: changeSentiment(change, getMetricDefinition(id).polarity),
       digits: changeDigits(metric.format),
@@ -83,6 +83,7 @@ export function TrendExplorer({ analytics }: { analytics: Analytics }) {
               <TrendChart
                 points={trend.points}
                 format={trend.format}
+                currency={analytics.currency}
                 seriesLabel={trend.label}
                 comparisonName={comparisonName}
                 variant={trend.variant}
@@ -103,8 +104,8 @@ export function TrendExplorer({ analytics }: { analytics: Analytics }) {
                 key: point.date,
                 cells: [
                   point.label,
-                  formatMetricValue(point.value, trend.format),
-                  ...(comparison ? [formatMetricValue(point.previousValue, trend.format), point.previousLabel ?? "—"] : []),
+                  formatMetricValue(point.value, trend.format, analytics.currency),
+                  ...(comparison ? [formatMetricValue(point.previousValue, trend.format, analytics.currency), point.previousLabel ?? "—"] : []),
                 ],
               })),
             }}
