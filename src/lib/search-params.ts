@@ -125,23 +125,20 @@ export function parseDateRangeParams(
   params: SearchParamsRecord,
   { bounds, defaultPreset }: DateRangeOptions,
 ): DateRangeState {
-  const from = firstParam(params[PARAM.from]);
-  const to = firstParam(params[PARAM.to]);
-
-  let preset: RangePreset | "custom" = parseEnumParam(params[PARAM.range], RANGE_PRESETS, defaultPreset);
-  let range = resolvePresetRange(preset, bounds.to);
-
-  if (isIsoDate(from) && isIsoDate(to)) {
-    const ordered: DateRange = from <= to ? { from, to } : { from: to, to: from };
-    const clamped = clampRange(ordered, bounds);
-    if (clamped) {
-      preset = "custom";
-      range = clamped;
-    }
-  }
-
+  const custom = parseCustomRange(params, bounds);
+  const named = parseEnumParam(params[PARAM.range], RANGE_PRESETS, defaultPreset);
+  const preset: RangePreset | "custom" = custom ? "custom" : named;
+  const range = custom ?? resolvePresetRange(named, bounds.to);
   const comparison = parseEnumParam(params[PARAM.compare], COMPARISON_MODES, defaultComparisonMode(preset));
   return { preset, range, comparison };
+}
+
+/** A valid `from`/`to` pair, ordered and clamped into the data, or null. */
+function parseCustomRange(params: SearchParamsRecord, bounds: DateRange): DateRange | null {
+  const from = firstParam(params[PARAM.from]);
+  const to = firstParam(params[PARAM.to]);
+  if (!isIsoDate(from) || !isIsoDate(to)) return null;
+  return clampRange(from <= to ? { from, to } : { from: to, to: from }, bounds);
 }
 
 /** Query values for a date range, leaving out whatever equals the default. */
@@ -193,4 +190,42 @@ export function hrefWithParams(
   patch: Record<string, string | null | undefined>,
 ): string {
   return `${pathname}${mergeSearchParams(current, patch)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Date filter for record tables
+
+/**
+ * Record tables filter by date rather than report on a period: they default
+ * to every date with data, and there is no comparison period.
+ */
+export const ALL_DATES = "all";
+export const DATE_FILTER_PRESETS = [ALL_DATES, ...RANGE_PRESETS] as const;
+export type DateFilterPreset = (typeof DATE_FILTER_PRESETS)[number];
+
+export interface DateFilterState {
+  preset: DateFilterPreset | "custom";
+  range: DateRange;
+}
+
+export function resolveDateFilterPreset(preset: DateFilterPreset, bounds: DateRange): DateRange {
+  return preset === ALL_DATES ? { ...bounds } : resolvePresetRange(preset, bounds.to);
+}
+
+/** Reads `?range=` or a custom `?from=&to=`, like a report period, but falls back to all dates. */
+export function parseDateFilterParams(params: SearchParamsRecord, bounds: DateRange): DateFilterState {
+  const custom = parseCustomRange(params, bounds);
+  if (custom) return { preset: "custom", range: custom };
+  const preset = parseEnumParam(params[PARAM.range], DATE_FILTER_PRESETS, ALL_DATES);
+  return { preset, range: resolveDateFilterPreset(preset, bounds) };
+}
+
+/** Query values for a date filter; all dates is the default and leaves the URL clean. */
+export function dateFilterToParams(state: DateFilterState): Record<string, string | null> {
+  const custom = state.preset === "custom";
+  return {
+    [PARAM.range]: custom || state.preset === ALL_DATES ? null : state.preset,
+    [PARAM.from]: custom ? state.range.from : null,
+    [PARAM.to]: custom ? state.range.to : null,
+  };
 }

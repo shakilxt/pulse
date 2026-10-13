@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  dateFilterToParams,
   dateRangeToParams,
   firstParam,
   hrefWithParams,
   mergeSearchParams,
   nextSort,
+  parseDateFilterParams,
   parseDateRangeParams,
   parseEnumParam,
   parsePageParam,
@@ -158,5 +160,30 @@ describe("link helpers", () => {
   it("builds same-page links that patch the current query", () => {
     expect(hrefWithParams("/transactions", "q=ana&page=3", { page: "4" })).toBe("/transactions?q=ana&page=4");
     expect(hrefWithParams("/transactions", "page=3", { page: null })).toBe("/transactions");
+  });
+});
+
+describe("parseDateFilterParams", () => {
+  it("defaults to every date with data and keeps the URL clean", () => {
+    const state = parseDateFilterParams({}, bounds);
+    expect(state).toEqual({ preset: "all", range: bounds });
+    expect(dateFilterToParams(state)).toEqual({ range: null, from: null, to: null });
+  });
+
+  it("accepts the report presets and custom ranges", () => {
+    expect(parseDateFilterParams({ range: "30d" }, bounds)).toEqual({
+      preset: "30d",
+      range: { from: "2026-09-01", to: "2026-09-30" },
+    });
+    const custom = parseDateFilterParams({ from: "2025-05-31", to: "2025-05-01", range: "7d" }, bounds);
+    expect(custom).toEqual({ preset: "custom", range: { from: "2025-05-01", to: "2025-05-31" } });
+    expect(dateFilterToParams(custom)).toEqual({ range: null, from: "2025-05-01", to: "2025-05-31" });
+    expect(dateFilterToParams({ preset: "ytd", range: bounds })).toEqual({ range: "ytd", from: null, to: null });
+  });
+
+  it("ignores unusable values", () => {
+    expect(parseDateFilterParams({ range: "all-time" }, bounds).preset).toBe("all");
+    expect(parseDateFilterParams({ from: "2030-01-01", to: "2030-02-01" }, bounds).preset).toBe("all");
+    expect(parseDateFilterParams({ from: "yesterday", to: "2025-01-01", range: "90d" }, bounds).preset).toBe("90d");
   });
 });

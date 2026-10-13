@@ -48,7 +48,7 @@ export function DrawerContent({
             {eyebrow ? <div className="mb-1.5 text-xs font-medium text-ink-muted">{eyebrow}</div> : null}
             <DialogPrimitive.Title className="text-lg leading-snug font-semibold text-ink">{title}</DialogPrimitive.Title>
             {description ? (
-              <DialogPrimitive.Description className="mt-1 text-sm text-ink-muted">{description}</DialogPrimitive.Description>
+              <DialogPrimitive.Description className="mt-1 text-sm text-ink-muted wrap-anywhere">{description}</DialogPrimitive.Description>
             ) : null}
           </div>
           <DialogCloseButton label={closeLabel} className="-mt-1 -mr-2" />

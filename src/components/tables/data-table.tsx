@@ -5,13 +5,15 @@ import type { SortState } from "@/lib/search-params";
 import { SortableHeader } from "./sortable-header";
 
 /** Columns that drop out on narrow screens; the detail drawer still shows everything. */
-type Breakpoint = "sm" | "md" | "lg" | "xl";
+type Breakpoint = "sm" | "md" | "lg" | "xl" | "wide";
 
 const HIDE_BELOW: Record<Breakpoint, string> = {
   sm: "hidden sm:table-cell",
   md: "hidden md:table-cell",
   lg: "hidden lg:table-cell",
   xl: "hidden xl:table-cell",
+  /** 1440px: `xl` is 1280px, where the sidebar still takes 264px of it. */
+  wide: "hidden min-[90rem]:table-cell",
 };
 
 export interface DataTableColumn<Row, Key extends string = string> {
@@ -59,7 +61,8 @@ export function DataTable<Row, Key extends string>({
   className,
 }: DataTableProps<Row, Key>) {
   return (
-    <div className={cn("overflow-x-auto", className)}>
+    // `relative` keeps the visually hidden header text inside the scroller, so it can't widen the page.
+    <div className={cn("relative overflow-x-auto", className)}>
       <table className="w-full border-collapse text-sm tabular">
         <caption className="sr-only">{caption}</caption>
         <thead>

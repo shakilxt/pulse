@@ -4,6 +4,7 @@ import type { RecordPanel } from "@/components/tables/record-drawer";
 import { StatusBadge } from "@/components/tables/status-badge";
 import { formatDate, formatMoney } from "@/lib/formatters";
 import type { TransactionRow } from "@/lib/transaction-rows";
+import { DetailList, DetailRow } from "./detail-list";
 
 const STATUS_NOTES: Record<TransactionRow["status"], string> = {
   completed: "Counted in revenue for the day it was placed.",
@@ -24,7 +25,7 @@ export function transactionPanel(row: TransactionRow): RecordPanel {
           <StatusBadge status={row.status} />
           <p className="mt-2 text-ink-muted">{STATUS_NOTES[row.status]}</p>
         </div>
-        <dl className="divide-y divide-line rounded-lg border border-line">
+        <DetailList>
           <DetailRow label="Date">{formatDate(row.date, "long")}</DetailRow>
           <DetailRow label="Product">
             {row.productName}
@@ -32,13 +33,13 @@ export function transactionPanel(row: TransactionRow): RecordPanel {
           </DetailRow>
           <DetailRow label="Customer">
             <span className="block">{row.customerName}</span>
-            <span className="block text-ink-muted">{row.customerEmail}</span>
+            <span className="block text-ink-muted wrap-anywhere">{row.customerEmail}</span>
           </DetailRow>
           <DetailRow label="Payment method">{row.paymentMethodLabel}</DetailRow>
           <DetailRow label="Amount">
             <span className="font-semibold tabular">{formatMoney(row.amountMinor)}</span>
           </DetailRow>
-        </dl>
+        </DetailList>
         <Link
           href={`/customers?q=${encodeURIComponent(row.customerId)}`}
           className="inline-flex items-center gap-1 rounded-sm font-medium text-accent-ink hover:underline hover:underline-offset-4"
@@ -50,13 +51,4 @@ export function transactionPanel(row: TransactionRow): RecordPanel {
       </div>
     ),
   };
-}
-
-function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-[8.5rem_1fr] gap-3 px-4 py-3">
-      <dt className="text-ink-muted">{label}</dt>
-      <dd className="min-w-0 text-ink">{children}</dd>
-    </div>
-  );
 }

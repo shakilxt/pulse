@@ -61,8 +61,12 @@ export function DateRangePicker({ value, bounds, defaultPreset, align = "start",
       </PopoverTrigger>
       <PopoverContent align={align} className="w-[min(calc(100vw-2rem),340px)] p-0">
         <PresetList
+          items={RANGE_PRESETS.map((preset) => ({
+            value: preset,
+            label: RANGE_PRESET_LABELS[preset],
+            range: resolvePresetRange(preset, bounds.to),
+          }))}
           current={shown.preset}
-          anchor={bounds.to}
           onSelect={(preset) =>
             apply({ preset, range: resolvePresetRange(preset, bounds.to), comparison: shown.comparison })
           }
@@ -78,14 +82,21 @@ export function DateRangePicker({ value, bounds, defaultPreset, align = "start",
   );
 }
 
-function PresetList({
+export interface PresetItem<P extends string> {
+  value: P;
+  label: string;
+  range: DateRange;
+}
+
+/** One-click ranges, each showing the dates it resolves to. */
+export function PresetList<P extends string>({
+  items,
   current,
-  anchor,
   onSelect,
 }: {
-  current: DateRangeState["preset"];
-  anchor: string;
-  onSelect: (preset: RangePreset) => void;
+  items: readonly PresetItem<P>[];
+  current: P | "custom";
+  onSelect: (preset: P) => void;
 }) {
   const headingId = useId();
   return (
@@ -94,7 +105,7 @@ function PresetList({
         Quick ranges
       </p>
       <ul aria-labelledby={headingId} className="flex flex-col">
-        {RANGE_PRESETS.map((preset) => {
+        {items.map(({ value: preset, label, range }) => {
           const selected = preset === current;
           return (
             <li key={preset}>
@@ -107,8 +118,8 @@ function PresetList({
                   selected && "font-medium",
                 )}
               >
-                <span className="flex-1">{RANGE_PRESET_LABELS[preset]}</span>
-                <span className="text-xs text-ink-muted tabular">{formatDateRange(resolvePresetRange(preset, anchor), "short")}</span>
+                <span className="flex-1">{label}</span>
+                <span className="text-xs text-ink-muted tabular">{formatDateRange(range, "short")}</span>
                 <Check aria-hidden className={cn("size-4 shrink-0 text-ink", !selected && "invisible")} />
               </button>
             </li>
@@ -119,7 +130,8 @@ function PresetList({
   );
 }
 
-function CustomRangeForm({
+/** A from–to pair of native date inputs, validated against the data span with messages tied to each field. */
+export function CustomRangeForm({
   initial,
   bounds,
   onApply,
