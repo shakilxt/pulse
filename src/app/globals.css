@@ -1,0 +1,230 @@
+@import "tailwindcss";
+
+/*
+ * PULSE design tokens
+ *
+ * Raw values live on :root as light-dark() pairs, so each token is declared once
+ * and resolves from the active color-scheme. The @theme block maps them to
+ * Tailwind utilities (bg-canvas, text-ink, border-line, ...). Tailwind's default
+ * colour palette is removed so components can only use the brand tokens.
+ *
+ * Theme resolution:
+ *   data-theme="light" | "dark" on <html>  -> color-scheme forced to that mode
+ *   no data-theme                          -> color-scheme follows the OS
+ */
+
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme]), :root:not([data-theme]) *) {
+      @slot;
+    }
+  }
+}
+
+:root {
+  color-scheme: light dark;
+
+  /* Surfaces */
+  --canvas: light-dark(#f7f4ec, #101c18);
+  --surface: light-dark(#ffffff, #172821);
+  --surface-sunken: light-dark(#efebe1, #12201b);
+  --surface-raised: light-dark(#ffffff, #20372e);
+  --overlay: light-dark(rgb(11 41 35 / 0.45), rgb(3 10 8 / 0.65));
+
+  /* Text */
+  --ink: light-dark(#242923, #f7f4ec);
+  --ink-muted: light-dark(#5f655b, #bac7be);
+  --ink-inverse: light-dark(#f7f4ec, #101c18);
+  --accent-ink: light-dark(#123d32, #a8cdb5);
+
+  /* Lines (line-strong is the 3:1 boundary for form controls) */
+  --line: light-dark(#e5e1d7, #30473c);
+  --line-strong: light-dark(#8f8b7e, #5e7a6b);
+
+  /* Brand */
+  --forest: #0b2923;
+  --botanical: #123d32;
+  --sage: light-dark(#dce7d8, #2a453a);
+  --sage-strong: light-dark(#c5d6c0, #36574a);
+  --gold: light-dark(#b89a62, #c9ad76);
+  --gold-ink: light-dark(#85672d, #d2b47c);
+
+  /* Primary action */
+  --primary: light-dark(#123d32, #dce7d8);
+  --primary-hover: light-dark(#0b2923, #f7f4ec);
+  --on-primary: light-dark(#f7f4ec, #0b2923);
+
+  /* Status (text-safe on surfaces in both modes) */
+  --positive: light-dark(#277a54, #6cc39a);
+  --positive-soft: light-dark(#e3efe6, #1d3a2d);
+  --warning: light-dark(#8c5a16, #e0a85c);
+  --warning-soft: light-dark(#f5ead6, #3a2f1d);
+  --danger: light-dark(#b5443d, #ee8a80);
+  --danger-soft: light-dark(#f6e3e0, #3d2422);
+
+  /* Navigation */
+  --nav-bg: light-dark(#123d32, #0d1a16);
+  --nav-ink: #dce7d8;
+  --nav-ink-muted: light-dark(#a9bfb2, #93a89b);
+  --nav-active-bg: light-dark(#1d4a3e, #1a2e27);
+  --nav-active-ink: #f7f4ec;
+  --nav-line: light-dark(rgb(220 231 216 / 0.14), rgb(220 231 216 / 0.1));
+  --nav-accent: #c9ad76;
+
+  /* Focus */
+  --focus: light-dark(#b07d2a, #d2b47c);
+  --focus-on-nav: #d2b47c;
+
+  /* Landscape illustration */
+  --land-sky: light-dark(#f3efe4, #14231e);
+  --land-sun: light-dark(#e4cf9f, #6f6040);
+  --land-far: light-dark(#c9d8c6, #1f3830);
+  --land-mid: light-dark(#9db5a0, #284539);
+  --land-near: light-dark(#4f7a66, #2f5446);
+  --land-forest: light-dark(#123d32, #0b1a15);
+  --land-sea: light-dark(#dfe7dc, #182b24);
+  --land-mist: light-dark(#f7f4ec, #101c18);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-white: #ffffff;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-raised: var(--surface-raised);
+  --color-overlay: var(--overlay);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-inverse: var(--ink-inverse);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-forest: var(--forest);
+  --color-botanical: var(--botanical);
+  --color-sage: var(--sage);
+  --color-sage-strong: var(--sage-strong);
+  --color-gold: var(--gold);
+  --color-gold-ink: var(--gold-ink);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+
+  --color-positive: var(--positive);
+  --color-positive-soft: var(--positive-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --color-nav: var(--nav-bg);
+  --color-nav-ink: var(--nav-ink);
+  --color-nav-ink-muted: var(--nav-ink-muted);
+  --color-nav-active: var(--nav-active-bg);
+  --color-nav-active-ink: var(--nav-active-ink);
+  --color-nav-line: var(--nav-line);
+  --color-nav-accent: var(--nav-accent);
+
+  --color-focus: var(--focus);
+  --color-focus-on-nav: var(--focus-on-nav);
+
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), "Iowan Old Style", Georgia, serif;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+
+  --shadow-pop: 0 18px 40px -18px rgb(11 41 35 / 0.35), 0 2px 6px -2px rgb(11 41 35 / 0.12);
+  --shadow-hairline: 0 1px 0 0 rgb(11 41 35 / 0.04);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-pop: pulse-pop 160ms var(--ease-out-soft);
+  --animate-fade-in: pulse-fade-in 200ms var(--ease-out-soft);
+  --animate-drawer-in-left: pulse-drawer-in-left 260ms var(--ease-out-soft);
+
+  @keyframes pulse-pop {
+    from {
+      opacity: 0;
+      transform: translateY(-2px) scale(0.98);
+    }
+  }
+
+  @keyframes pulse-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes pulse-drawer-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01" on;
+  }
+
+  ::selection {
+    background-color: var(--sage-strong);
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility focus-ring-nav {
+  &:focus-visible {
+    outline: 2px solid var(--focus-on-nav);
+    outline-offset: 2px;
+  }
+}
