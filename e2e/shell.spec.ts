@@ -128,7 +128,7 @@ test.describe("theme", () => {
   test("persists an explicit choice across reloads before hydration", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
     await page.goto("/customers");
-    await page.getByRole("button", { name: /^Theme: System/ }).click();
+    await page.getByRole("button", { name: /^Profile and preferences/ }).click();
     await page.getByRole("menuitemradio", { name: "Dark" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     expect(await canvasColor(page)).toBe(darkCanvas);
@@ -141,7 +141,8 @@ test.describe("theme", () => {
     await page.unroute(/\/_next\/static\/chunks\/.*\.js$/);
 
     await page.reload();
-    await page.getByRole("button", { name: /^Theme: Dark/ }).click();
+    await page.getByRole("button", { name: /^Profile and preferences/ }).click();
+    await expect(page.getByRole("menuitemradio", { name: "Dark" })).toHaveAttribute("aria-checked", "true");
     await page.getByRole("menuitemradio", { name: "System" }).click();
     await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.+/);
     expect(await canvasColor(page)).toBe(lightCanvas);

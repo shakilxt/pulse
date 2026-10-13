@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   dateRangeToParams,
   firstParam,
+  hrefWithParams,
   mergeSearchParams,
+  nextSort,
   parseDateRangeParams,
   parseEnumParam,
   parsePageParam,
   parseSearchParam,
   parseSortParam,
   serializeSort,
+  sortToParam,
+  toUrlSearchParams,
 } from "./search-params";
 
 const bounds = { from: "2024-01-01", to: "2026-09-30" };
@@ -125,5 +129,34 @@ describe("mergeSearchParams", () => {
     expect(mergeSearchParams("q=ana&page=3", { page: null, status: "active" })).toBe("?q=ana&status=active");
     expect(mergeSearchParams("q=ana", { q: "" })).toBe("");
     expect(mergeSearchParams(new URLSearchParams(), { q: "a&b" })).toBe("?q=a%26b");
+  });
+});
+
+describe("sort helpers", () => {
+  const fallback = { key: "date", direction: "desc" } as const;
+
+  it("flips the active column and starts others in their natural direction", () => {
+    expect(nextSort(fallback, "date", "desc")).toEqual({ key: "date", direction: "asc" });
+    expect(nextSort({ key: "date", direction: "asc" }, "date", "desc")).toEqual({ key: "date", direction: "desc" });
+    expect(nextSort(fallback, "name", "asc")).toEqual({ key: "name", direction: "asc" });
+    expect(nextSort(fallback, "amount", "desc")).toEqual({ key: "amount", direction: "desc" });
+  });
+
+  it("leaves the default sort out of the URL", () => {
+    expect(sortToParam(fallback, fallback)).toBeNull();
+    expect(sortToParam({ key: "date", direction: "asc" }, fallback)).toBe("date.asc");
+    expect(sortToParam({ key: "amount", direction: "desc" }, fallback)).toBe("amount.desc");
+  });
+});
+
+describe("link helpers", () => {
+  it("rebuilds the query from a page's searchParams prop", () => {
+    const params = toUrlSearchParams({ q: "ana", status: ["failed", "pending"], page: undefined });
+    expect(params.toString()).toBe("q=ana&status=failed&status=pending");
+  });
+
+  it("builds same-page links that patch the current query", () => {
+    expect(hrefWithParams("/transactions", "q=ana&page=3", { page: "4" })).toBe("/transactions?q=ana&page=4");
+    expect(hrefWithParams("/transactions", "page=3", { page: null })).toBe("/transactions");
   });
 });

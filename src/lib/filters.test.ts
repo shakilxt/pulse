@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchesSearch, normalizeText, paginate, sortRows, tokenize } from "./filters";
+import { matchesSearch, normalizeText, paginate, paginationItems, sortRows, tokenize } from "./filters";
 
 describe("search", () => {
   it("normalises case, accents and whitespace", () => {
@@ -87,5 +87,45 @@ describe("paginate", () => {
       firstRow: 0,
       lastRow: 0,
     });
+  });
+});
+
+describe("paginationItems", () => {
+  it("lists every page when there are seven or fewer", () => {
+    expect(paginationItems(1, 1)).toEqual([1]);
+    expect(paginationItems(3, 7)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(paginationItems(1, 0)).toEqual([1]);
+  });
+
+  it("keeps the first, last and current page with a stable length", () => {
+    expect(paginationItems(1, 20)).toEqual([1, 2, 3, 4, 5, "gap", 20]);
+    expect(paginationItems(4, 20)).toEqual([1, 2, 3, 4, 5, "gap", 20]);
+    expect(paginationItems(5, 20)).toEqual([1, "gap", 4, 5, 6, "gap", 20]);
+    expect(paginationItems(17, 20)).toEqual([1, "gap", 16, 17, 18, 19, 20]);
+    expect(paginationItems(20, 20)).toEqual([1, "gap", 16, 17, 18, 19, 20]);
+    for (let page = 1; page <= 20; page++) {
+      const items = paginationItems(page, 20);
+      expect(items).toHaveLength(7);
+      expect(items).toContain(page);
+    }
+  });
+
+  it("never uses a gap for a single skipped page", () => {
+    for (let count = 8; count <= 12; count++) {
+      for (let page = 1; page <= count; page++) {
+        const items = paginationItems(page, count);
+        items.forEach((item, index) => {
+          if (item !== "gap") return;
+          const before = items[index - 1];
+          const after = items[index + 1];
+          expect(typeof before === "number" && typeof after === "number" && after - before > 2).toBe(true);
+        });
+      }
+    }
+  });
+
+  it("clamps an out-of-range current page", () => {
+    expect(paginationItems(99, 20)).toEqual(paginationItems(20, 20));
+    expect(paginationItems(-3, 20)).toEqual(paginationItems(1, 20));
   });
 });

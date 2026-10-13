@@ -96,3 +96,32 @@ export function paginate<T>(rows: readonly T[], requestedPage: number, pageSize:
     lastRow: startIndex + pageRows.length,
   };
 }
+
+export type PaginationItem = number | "gap";
+
+/**
+ * Page numbers to show around the current page: always the first and last,
+ * the current page with one neighbour each side, and a gap marker wherever
+ * pages are skipped. A gap never stands in for a single page, so the list
+ * keeps a stable length (at most seven items) as the current page moves.
+ */
+export function paginationItems(page: number, pageCount: number): PaginationItem[] {
+  if (pageCount <= 7) return Array.from({ length: Math.max(1, pageCount) }, (_, index) => index + 1);
+  const current = Math.min(Math.max(1, page), pageCount);
+  let start = Math.max(2, current - 1);
+  let end = Math.min(pageCount - 1, current + 1);
+  // Near either edge, extend the window instead of showing a gap for one page.
+  if (current <= 4) {
+    start = 2;
+    end = 5;
+  } else if (current >= pageCount - 3) {
+    start = pageCount - 4;
+    end = pageCount - 1;
+  }
+  const items: PaginationItem[] = [1];
+  if (start > 2) items.push("gap");
+  for (let value = start; value <= end; value++) items.push(value);
+  if (end < pageCount - 1) items.push("gap");
+  items.push(pageCount);
+  return items;
+}

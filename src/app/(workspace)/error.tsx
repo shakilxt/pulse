@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { RotateCcw, TriangleAlert } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/error-state";
 
 export default function WorkspaceError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   useEffect(() => {
@@ -10,16 +11,16 @@ export default function WorkspaceError({ error, retry }: { error: Error & { dige
   }, [error]);
 
   return (
-    <div role="alert" className="mx-auto mt-16 max-w-md text-center">
-      <TriangleAlert aria-hidden className="mx-auto mb-4 size-6 text-warning" strokeWidth={1.75} />
-      <h1 className="font-serif text-3xl font-medium text-ink">This view didn&rsquo;t load</h1>
-      <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-        Something went wrong while preparing this page. Your preferences are unaffected.
-      </p>
-      <Button variant="primary" className="mt-6" onClick={() => retry()}>
-        <RotateCcw aria-hidden />
-        Try again
-      </Button>
-    </div>
+    <ErrorState
+      size="page"
+      title="This view didn’t load"
+      description="Something went wrong while preparing this page. Your preferences are unaffected."
+      action={
+        <Button variant="primary" onClick={() => retry()}>
+          <RotateCcw aria-hidden />
+          Try again
+        </Button>
+      }
+    />
   );
 }

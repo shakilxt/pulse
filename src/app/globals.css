@@ -182,6 +182,8 @@
   --animate-pop: pulse-pop 160ms var(--ease-out-soft);
   --animate-fade-in: pulse-fade-in 200ms var(--ease-out-soft);
   --animate-drawer-in-left: pulse-drawer-in-left 260ms var(--ease-out-soft);
+  --animate-drawer-in-right: pulse-drawer-in-right 260ms var(--ease-out-soft);
+  --animate-dialog-in: pulse-dialog-in 180ms var(--ease-out-soft);
 
   @keyframes pulse-pop {
     from {
@@ -199,6 +201,19 @@
   @keyframes pulse-drawer-in-left {
     from {
       transform: translateX(-100%);
+    }
+  }
+
+  @keyframes pulse-drawer-in-right {
+    from {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes pulse-dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.985);
     }
   }
 }

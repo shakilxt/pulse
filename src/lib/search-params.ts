@@ -81,6 +81,25 @@ export function serializeSort<K extends string>(sort: SortState<K>): string {
   return `${sort.key}.${sort.direction}`;
 }
 
+/** The `sort` query value for a state, or null when it is the table's default. */
+export function sortToParam<K extends string>(sort: SortState<K>, fallback: SortState<K>): string | null {
+  return sort.key === fallback.key && sort.direction === fallback.direction ? null : serializeSort(sort);
+}
+
+/**
+ * The state a column header switches to: the active column flips direction,
+ * any other column starts in its own natural direction (newest or largest
+ * first for dates and amounts, A–Z for text).
+ */
+export function nextSort<K extends string>(
+  current: SortState<K>,
+  key: K,
+  initialDirection: SortDirection,
+): SortState<K> {
+  if (current.key !== key) return { key, direction: initialDirection };
+  return { key, direction: current.direction === "asc" ? "desc" : "asc" };
+}
+
 // ---------------------------------------------------------------------------
 // Date range
 
@@ -139,6 +158,17 @@ export function dateRangeToParams(
   };
 }
 
+/** A page's `searchParams` prop as URLSearchParams, keeping repeated keys. */
+export function toUrlSearchParams(params: SearchParamsRecord): URLSearchParams {
+  const result = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (item !== undefined) result.append(key, item);
+    }
+  }
+  return result;
+}
+
 /**
  * Applies a patch to a query string: strings set a key, null or undefined
  * removes it. Returns "?…" or an empty string, ready to append to a path.
@@ -154,4 +184,13 @@ export function mergeSearchParams(
   }
   const query = next.toString();
   return query ? `?${query}` : "";
+}
+
+/** A same-page link with a patch applied to the current query. */
+export function hrefWithParams(
+  pathname: string,
+  current: string | URLSearchParams,
+  patch: Record<string, string | null | undefined>,
+): string {
+  return `${pathname}${mergeSearchParams(current, patch)}`;
 }
