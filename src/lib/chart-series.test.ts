@@ -6,13 +6,17 @@ import {
   bucketAxisLabel,
   bucketLabel,
   cashflowSeries,
+  metricTrend,
   peakPoint,
-  revenueTrend,
   seriesFrame,
+  trendExtremes,
+  type TrendPoint,
 } from "./chart-series";
 import { type DateRange, resolvePresetRange } from "./dates";
+import { TREND_METRIC_VALUES } from "./metrics";
 
 const dataset = generateDataset();
+const revenue = TREND_METRIC_VALUES.revenue.value;
 const sum = <T>(items: readonly T[], value: (item: T) => number) => items.reduce((total, item) => total + value(item), 0);
 
 describe("bucket labels", () => {
@@ -48,12 +52,27 @@ describe.each(RANGES)("series for %s", (_, range) => {
   const summary = summarizePeriod(dataset, range);
 
   it("revenue trend adds up to the period and its comparison", () => {
-    const points = revenueTrend(dataset, frame, "previous-period");
+    const points = metricTrend(dataset, frame, "previous-period", revenue);
     expect(points).toHaveLength(frame.buckets.length);
-    expect(sum(points, (point) => point.revenueMinor)).toBe(summary.revenueMinor);
+    expect(sum(points, (point) => point.value ?? 0)).toBe(summary.revenueMinor);
     const comparison = summarizeComparison(dataset, range, "previous-period").summary;
-    expect(sum(points, (point) => point.previousRevenueMinor ?? 0)).toBe(comparison?.revenueMinor);
+    expect(sum(points, (point) => point.previousValue ?? 0)).toBe(comparison?.revenueMinor);
     for (const point of points) expect(point.previousLabel).not.toBeNull();
+  });
+
+  it("every summed trend metric adds up to the period total", () => {
+    for (const id of ["orders", "newCustomers"] as const) {
+      const points = metricTrend(dataset, frame, "previous-period", TREND_METRIC_VALUES[id].value);
+      expect(sum(points, (point) => point.value ?? 0)).toBe(summary[id]);
+    }
+  });
+
+  it("conversion rate per point is that bucket's new customers over its visitors", () => {
+    const points = metricTrend(dataset, frame, "previous-period", TREND_METRIC_VALUES.conversionRate.value);
+    const totals = acquisitionTrend(dataset, frame);
+    points.forEach((point, index) => {
+      expect(point.value).toBe(totals[index]?.conversionRate);
+    });
   });
 
   it("cash flow and acquisition add up to the period", () => {
@@ -88,14 +107,14 @@ describe("seriesFrame", () => {
   });
 });
 
-describe("revenueTrend", () => {
+describe("metricTrend", () => {
   it("leaves out the comparison when it would reach before the data starts", () => {
-    const points = revenueTrend(dataset, seriesFrame({ from: "2024-01-01", to: "2024-02-10" }), "previous-period");
-    expect(points.every((point) => point.previousRevenueMinor === null && point.previousLabel === null)).toBe(true);
+    const points = metricTrend(dataset, seriesFrame({ from: "2024-01-01", to: "2024-02-10" }), "previous-period", revenue);
+    expect(points.every((point) => point.previousValue === null && point.previousLabel === null)).toBe(true);
   });
 
   it("lines each month up with the same month last year", () => {
-    const points = revenueTrend(dataset, seriesFrame(resolvePresetRange("ytd", dataset.span.to)), "previous-year");
+    const points = metricTrend(dataset, seriesFrame(resolvePresetRange("ytd", dataset.span.to)), "previous-year", revenue);
     expect(points.map((point) => [point.label, point.previousLabel]).slice(0, 2)).toEqual([
       ["Jan 2026", "Jan 2025"],
       ["Feb 2026", "Feb 2025"],
@@ -112,5 +131,34 @@ describe("peakPoint", () => {
     ];
     expect(peakPoint(points, (point) => point.value)?.id).toBe("b");
     expect(peakPoint([], () => 0)).toBeUndefined();
+  });
+});
+
+describe("trendExtremes", () => {
+  const point = (date: string, value: number | null, partial = false): TrendPoint => ({
+    date,
+    axisLabel: date,
+    label: date,
+    partial,
+    value,
+    previousValue: null,
+    previousLabel: null,
+  });
+
+  it("skips partial buckets for totals while full ones exist", () => {
+    const points = [point("a", 1, true), point("b", 9), point("c", 4), point("d", 12, true)];
+    const totals = trendExtremes(points, { fullBucketsOnly: true });
+    expect([totals.highest?.date, totals.lowest?.date, totals.skippedPartial]).toEqual(["b", "c", true]);
+    const rates = trendExtremes(points, { fullBucketsOnly: false });
+    expect([rates.highest?.date, rates.lowest?.date, rates.skippedPartial]).toEqual(["d", "a", false]);
+  });
+
+  it("ignores points without a value and falls back to partial buckets when there are no full ones", () => {
+    expect(trendExtremes([point("a", null), point("b", 3, true)], { fullBucketsOnly: true })).toMatchObject({
+      highest: { date: "b" },
+      lowest: { date: "b" },
+      skippedPartial: false,
+    });
+    expect(trendExtremes([point("a", null)], { fullBucketsOnly: true }).highest).toBeUndefined();
   });
 });

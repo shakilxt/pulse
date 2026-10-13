@@ -19,6 +19,16 @@ interface SegmentedControlProps<T extends string> {
 }
 
 /**
+ * Arrow keys move focus and choose in one step. Radix only selects on focus
+ * when its document-level key listener has already seen the arrow key, which
+ * React's handlers outrun on the first press, so selection follows keyboard
+ * focus here. Pointer focus is left to the click.
+ */
+export function isKeyboardFocus(element: Element): boolean {
+  return element.matches(":focus-visible");
+}
+
+/**
  * A single choice among a few options, shown side by side. It is a radio
  * group: Tab enters it, arrow keys move between options and select them.
  */
@@ -48,6 +58,9 @@ export function SegmentedControl<T extends string>({
         <RadioGroupPrimitive.Item
           key={option.value}
           value={option.value}
+          onFocus={(event) => {
+            if (option.value !== value && isKeyboardFocus(event.currentTarget)) onValueChange(option.value);
+          }}
           className={cn(
             "shrink-0 rounded-md font-medium whitespace-nowrap text-ink-muted transition-colors hover:text-ink",
             "data-[state=checked]:bg-surface data-[state=checked]:text-ink data-[state=checked]:shadow-hairline data-[state=checked]:ring-1 data-[state=checked]:ring-line",

@@ -20,19 +20,20 @@ import { percentChange, roundSharesTo100, safeRatio } from "./calculations";
 import {
   type AcquisitionTrendPoint,
   type CashflowPoint,
-  type RevenueTrendPoint,
+  type TrendPoint,
   acquisitionTrend,
-  bucketNoun,
   cashflowSeries,
+  metricTrend,
   peakPoint,
-  revenueTrend,
   seriesFrame,
+  trendExtremes,
 } from "./chart-series";
-import type { DateRange, Granularity, IsoDate } from "./dates";
+import type { ComparisonMode, DateRange, Granularity, IsoDate } from "./dates";
 import { formatDateRange, formatInteger, formatMoney, formatPercent } from "./formatters";
-import { OVERVIEW_METRICS, buildMetric, describeComparison, metricChange } from "./metrics";
+import { OVERVIEW_METRICS, TREND_METRIC_VALUES, buildMetric, describeComparison } from "./metrics";
 import { sortRows } from "./filters";
 import type { DateRangeState } from "./search-params";
+import { cashflowSummary, comparisonPeriod, isNegligible, trendSummary } from "./summaries";
 import { type TransactionRow, toTransactionRow, transactionLookups } from "./transaction-rows";
 
 export const RECENT_TRANSACTION_LIMIT = 6;
@@ -70,12 +71,13 @@ export interface Overview {
   range: DateRange;
   granularity: Granularity;
   comparison: Comparison;
+  comparisonMode: ComparisonMode;
   comparisonLabel: string;
   dataThrough: IsoDate;
   current: PeriodSummary;
   metrics: DashboardMetric[];
   greeting: { salutation: string; summary: string };
-  revenue: { points: RevenueTrendPoint[]; summary: string };
+  revenue: { points: TrendPoint[]; peakDate: IsoDate | null; summary: string };
   cashflow: { points: CashflowPoint[]; granularity: Granularity; summary: string };
   acquisition: { points: AcquisitionTrendPoint[]; sources: SourceShare[]; summary: string };
   categories: CategoryShare[];
@@ -111,16 +113,6 @@ export function describePeriod(state: DateRangeState): string {
   }
 }
 
-/** Changes that round to 0.0% read as "in line" rather than "rose 0.0%". */
-function isNegligible(relativeChange: number): boolean {
-  return Math.abs(relativeChange) < 0.0005;
-}
-
-/** "the previous 30 days" from "vs previous 30 days". */
-function comparisonPeriod(comparisonLabel: string): string {
-  return `the ${comparisonLabel.replace(/^vs\s+/, "")}`;
-}
-
 /** "6.3% more than the previous 30 days", or null when there is nothing to compare. */
 function revenueComparisonPhrase(current: number, previous: number | null, comparisonLabel: string): string | null {
   const change = percentChange(current, previous);
@@ -149,40 +141,6 @@ function greetingSummary(
   return leader ? `${first} ${leader.name} led sales.` : first;
 }
 
-function revenueSummary(
-  points: readonly RevenueTrendPoint[],
-  granularity: Granularity,
-  metric: DashboardMetric | undefined,
-): string {
-  const peak = peakPoint(points, (point) => point.revenueMinor);
-  if (!metric || metric.value === null || metric.value === 0 || !peak) return "No revenue was recorded in this period.";
-  const total = formatMoney(metric.value, { whole: true });
-  const change = metricChange(metric);
-  const trend =
-    change.kind === "unavailable"
-      ? `Revenue totalled ${total}. There is no comparison data for the previous period.`
-      : change.kind === "relative" && !isNegligible(change.value)
-        ? `Revenue ${change.value > 0 ? "rose" : "fell"} ${formatPercent(Math.abs(change.value))} to ${total} ${metric.comparisonLabel}.`
-        : change.kind === "new"
-          ? `Revenue totalled ${total}, up from none ${metric.comparisonLabel}.`
-          : `Revenue totalled ${total}, in line ${metric.comparisonLabel}.`;
-  if (points.length <= 1) return trend;
-  return `${trend} The strongest ${bucketNoun(granularity)} was ${peak.label}, with ${formatMoney(peak.revenueMinor, { whole: true })}.`;
-}
-
-function cashflowSummary(points: readonly CashflowPoint[], current: PeriodSummary, granularity: Granularity): string {
-  const expenses = formatMoney(current.expensesMinor, { whole: true });
-  const profit = formatMoney(Math.abs(current.profitMinor), { whole: true });
-  const margin = safeRatio(current.profitMinor, current.revenueMinor);
-  const result =
-    current.profitMinor >= 0
-      ? `Expenses were ${expenses}, leaving a net profit of ${profit}${margin === null ? "" : ` (${formatPercent(margin)} margin)`}.`
-      : `Expenses were ${expenses}, a net loss of ${profit}.`;
-  if (points.length <= 1) return result;
-  const ahead = points.filter((point) => point.profitMinor > 0).length;
-  return `${result} Revenue exceeded expenses in ${ahead} of ${points.length} ${bucketNoun(granularity)}s.`;
-}
-
 function acquisitionSummary(current: PeriodSummary, sources: readonly SourceShare[]): string {
   if (current.newCustomers === 0) return "No new customers joined in this period.";
   const customers = current.newCustomers === 1 ? "1 new customer" : `${formatInteger(current.newCustomers)} new customers`;
@@ -190,6 +148,20 @@ function acquisitionSummary(current: PeriodSummary, sources: readonly SourceShar
   const leader = peakPoint(sources, (source) => source.conversions);
   const lead = leader ? ` ${leader.name} brought the most (${leader.sharePercent}%).` : "";
   return `${customers} from ${formatInteger(current.visitors)} visitors${rate}.${lead}`;
+}
+
+/** New customers per acquisition channel, with whole-percentage shares that add up to 100. */
+export function sourceShares(dataset: Dataset, range: DateRange): SourceShare[] {
+  const rows = sourceBreakdown(dataset, range);
+  const percents = roundSharesTo100(rows.map((row) => row.conversions));
+  return rows.map((row, index) => ({
+    id: row.id,
+    name: row.name,
+    visitors: row.visitors,
+    conversions: row.conversions,
+    conversionRate: safeRatio(row.conversions, row.visitors),
+    sharePercent: percents[index] ?? 0,
+  }));
 }
 
 export function buildOverview(dataset: Dataset, state: DateRangeState, workspaceName: string): Overview {
@@ -217,16 +189,7 @@ export function buildOverview(dataset: Dataset, state: DateRangeState, workspace
   const categoryPercents = roundSharesTo100(categoryRows.map((row) => row.revenueMinor));
   const categories = categoryRows.map((row, index) => ({ ...row, sharePercent: categoryPercents[index] ?? 0 }));
 
-  const sourceRows = sourceBreakdown(dataset, range);
-  const sourcePercents = roundSharesTo100(sourceRows.map((row) => row.conversions));
-  const sources = sourceRows.map((row, index) => ({
-    id: row.id,
-    name: row.name,
-    visitors: row.visitors,
-    conversions: row.conversions,
-    conversionRate: safeRatio(row.conversions, row.visitors),
-    sharePercent: sourcePercents[index] ?? 0,
-  }));
+  const sources = sourceShares(dataset, range);
 
   const lookups = transactionLookups(dataset);
   const recentTransactions = transactionsInRange(dataset, range)
@@ -234,7 +197,8 @@ export function buildOverview(dataset: Dataset, state: DateRangeState, workspace
     .reverse()
     .map((transaction) => toTransactionRow(transaction, lookups));
 
-  const revenuePoints = revenueTrend(dataset, frame, state.comparison);
+  const revenuePoints = metricTrend(dataset, frame, state.comparison, TREND_METRIC_VALUES.revenue.value);
+  const revenuePeak = trendExtremes(revenuePoints, { fullBucketsOnly: true }).highest;
   const cashflowFrame = seriesFrame(range, { maxPoints: CASHFLOW_MAX_POINTS });
   const cashflowPoints = cashflowSeries(dataset, cashflowFrame);
 
@@ -242,6 +206,7 @@ export function buildOverview(dataset: Dataset, state: DateRangeState, workspace
     range,
     granularity: frame.granularity,
     comparison,
+    comparisonMode: state.comparison,
     comparisonLabel,
     dataThrough: dataset.span.to,
     current,
@@ -252,7 +217,15 @@ export function buildOverview(dataset: Dataset, state: DateRangeState, workspace
     },
     revenue: {
       points: revenuePoints,
-      summary: revenueSummary(revenuePoints, frame.granularity, metrics[0]),
+      peakDate: revenuePoints.length > 1 ? (revenuePeak?.date ?? null) : null,
+      summary: trendSummary({
+        id: "revenue",
+        metric: buildMetric("revenue", current, comparison.summary, comparisonLabel),
+        points: revenuePoints,
+        granularity: frame.granularity,
+        mode: state.comparison,
+        peak: revenuePeak,
+      }),
     },
     cashflow: {
       points: cashflowPoints,

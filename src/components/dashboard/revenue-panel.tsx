@@ -1,15 +1,16 @@
 import { ChartFrame } from "@/components/charts/chart-frame";
 import { CHART_COLORS } from "@/components/charts/chart-theme";
-import { RevenueChart } from "@/components/charts/revenue-chart";
+import { TrendChart } from "@/components/charts/trend-chart";
 import { ChartLegend } from "@/components/charts/series-key";
 import { bucketNoun } from "@/lib/chart-series";
 import { formatDateRange, formatMetricValue } from "@/lib/formatters";
-import { changeSentiment, getMetricDefinition, metricChange } from "@/lib/metrics";
+import { changeSentiment, comparisonSeriesName, getMetricDefinition, metricChange } from "@/lib/metrics";
 import type { Overview } from "@/lib/overview";
 import { ChangeBadge } from "./change-badge";
 
 export function RevenuePanel({ overview }: { overview: Overview }) {
-  const { points, summary } = overview.revenue;
+  const { points, peakDate, summary } = overview.revenue;
+  const comparisonName = comparisonSeriesName(overview.comparisonMode);
   const metric = overview.metrics.find((item) => item.id === "revenue");
   const change = metric ? metricChange(metric) : null;
   const comparison = overview.comparison.summary ? overview.comparison.range : null;
@@ -40,9 +41,9 @@ export function RevenuePanel({ overview }: { overview: Overview }) {
           items={[
             { label: "This period", color: CHART_COLORS.primary, mark: "line" },
             ...(comparison
-              ? [{ label: "Previous period", color: CHART_COLORS.neutral, mark: "dashed" as const, detail: formatDateRange(comparison) }]
+              ? [{ label: comparisonName, color: CHART_COLORS.neutral, mark: "dashed" as const, detail: formatDateRange(comparison) }]
               : []),
-            ...(points.length > 1 ? [{ label: "Peak", color: CHART_COLORS.highlight, mark: "dot" as const }] : []),
+            ...(peakDate ? [{ label: "Peak", color: CHART_COLORS.highlight, mark: "dot" as const }] : []),
           ]}
         />
       }
@@ -53,24 +54,27 @@ export function RevenuePanel({ overview }: { overview: Overview }) {
         columns: [
           { label: "Period" },
           { label: "Revenue", align: "end" },
-          ...(comparison ? [{ label: "Previous period", align: "end" as const }, { label: "Compared with" }] : []),
+          ...(comparison ? [{ label: comparisonName, align: "end" as const }, { label: "Compared with" }] : []),
         ],
         rows: points.map((point) => ({
           key: point.date,
           cells: [
             point.label,
-            formatMetricValue(point.revenueMinor, "currency"),
-            ...(comparison
-              ? [
-                  point.previousRevenueMinor === null ? "—" : formatMetricValue(point.previousRevenueMinor, "currency"),
-                  point.previousLabel ?? "—",
-                ]
-              : []),
+            formatMetricValue(point.value, "currency"),
+            ...(comparison ? [formatMetricValue(point.previousValue, "currency"), point.previousLabel ?? "—"] : []),
           ],
         })),
       }}
     >
-      <RevenueChart points={points} label="Revenue chart" />
+      <TrendChart
+        points={points}
+        format="currency"
+        seriesLabel="Revenue"
+        comparisonName={comparisonName}
+        variant="area"
+        peakDate={peakDate}
+        label="Revenue chart"
+      />
     </ChartFrame>
   );
 }

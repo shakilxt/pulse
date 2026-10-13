@@ -4,12 +4,20 @@ import { CASHFLOW_SERIES } from "@/components/charts/chart-theme";
 import { ChartLegend } from "@/components/charts/series-key";
 import { safeRatio } from "@/lib/calculations";
 import { bucketNoun } from "@/lib/chart-series";
+import type { CashflowPoint } from "@/lib/chart-series";
+import type { Granularity } from "@/lib/dates";
 import { formatMetricValue, formatPercent } from "@/lib/formatters";
-import type { Overview } from "@/lib/overview";
 
-export function CashflowPanel({ overview }: { overview: Overview }) {
-  const { points, granularity, summary } = overview.cashflow;
-  const { profitMinor, revenueMinor } = overview.current;
+interface CashflowPanelProps {
+  points: readonly CashflowPoint[];
+  granularity: Granularity;
+  summary: string;
+  revenueMinor: number;
+  profitMinor: number;
+  className?: string;
+}
+
+export function CashflowPanel({ points, granularity, summary, revenueMinor, profitMinor, className }: CashflowPanelProps) {
   const margin = safeRatio(profitMinor, revenueMinor);
 
   return (
@@ -17,7 +25,7 @@ export function CashflowPanel({ overview }: { overview: Overview }) {
       id="cashflow"
       title="Revenue vs expenses"
       description={`Per ${bucketNoun(granularity)}, on one money scale`}
-      className="lg:col-span-7"
+      className={className}
       aside={
         <div className="text-right">
           <p className="text-xs text-ink-muted">{profitMinor >= 0 ? "Net profit" : "Net loss"}</p>

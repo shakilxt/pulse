@@ -65,21 +65,40 @@ export function ChartFrame({
         {aside}
       </header>
       {legend ? <div className="mt-4">{legend}</div> : null}
-      <figure aria-labelledby={titleId} aria-describedby={summaryId} className="mt-4 flex flex-1 flex-col">
-        <div className={cn("relative -mx-1", plotClassName)}>
-          <ChartBoundary>{children}</ChartBoundary>
-        </div>
-        <figcaption id={summaryId} className="mt-4 text-sm leading-relaxed text-ink-muted">
-          {summary}
-        </figcaption>
-      </figure>
+      <ChartFigure titleId={titleId} summaryId={summaryId} summary={summary} plotClassName={plotClassName}>
+        {children}
+      </ChartFigure>
       {footer}
       <ChartDataTable table={table} />
     </section>
   );
 }
 
-function ChartDataTable({ table }: { table: ChartTable }) {
+interface ChartFigureProps {
+  titleId: string;
+  summaryId: string;
+  summary: string;
+  plotClassName: string;
+  className?: string;
+  children: ReactNode;
+}
+
+/** The plot at a fixed height with its written summary as the caption. */
+export function ChartFigure({ titleId, summaryId, summary, plotClassName, className, children }: ChartFigureProps) {
+  return (
+    <figure aria-labelledby={titleId} aria-describedby={summaryId} className={cn("mt-4 flex flex-1 flex-col", className)}>
+      <div className={cn("relative -mx-1", plotClassName)}>
+        <ChartBoundary>{children}</ChartBoundary>
+      </div>
+      <figcaption id={summaryId} className="mt-4 text-sm leading-relaxed text-ink-muted">
+        {summary}
+      </figcaption>
+    </figure>
+  );
+}
+
+/** The chart's figures as a table, collapsed by default. */
+export function ChartDataTable({ table }: { table: ChartTable }) {
   return (
     <details className="group mt-3 border-t border-line pt-3">
       <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-sm text-sm font-medium text-accent-ink select-none hover:underline hover:underline-offset-4 [&::-webkit-details-marker]:hidden">

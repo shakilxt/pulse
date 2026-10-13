@@ -5,7 +5,7 @@
  */
 
 import type { Dataset } from "@/types/domain";
-import { isFullyCovered, totalsByBucket } from "./aggregations";
+import { type PeriodTotals, isFullyCovered, totalsByBucket } from "./aggregations";
 import { safeRatio } from "./calculations";
 import {
   type ComparisonMode,
@@ -27,12 +27,16 @@ export interface ChartPoint {
   axisLabel: string;
   /** Full name of the bucket for tooltips and tables: "Mon, Sep 14", "Sep 8 – 14, 2026". */
   label: string;
+  /** Shorter than a full week or month, at the start or end of the range. */
+  partial: boolean;
 }
 
-export interface RevenueTrendPoint extends ChartPoint {
-  revenueMinor: number;
-  /** The aligned comparison bucket; null when there is no comparison data. */
-  previousRevenueMinor: number | null;
+/** One metric over time, with the comparison period lined up point for point. */
+export interface TrendPoint extends ChartPoint {
+  /** Null where the metric is undefined, such as a conversion rate without visitors. */
+  value: number | null;
+  /** The aligned comparison bucket's value; null when there is no comparison data. */
+  previousValue: number | null;
   previousLabel: string | null;
 }
 
@@ -71,6 +75,7 @@ function chartPoint(bucket: DateBucket, granularity: Granularity): ChartPoint {
     date: bucket.start,
     axisLabel: bucketAxisLabel(bucket, granularity),
     label: bucketLabel(bucket, granularity),
+    partial: bucket.partial,
   };
 }
 
@@ -100,22 +105,29 @@ export function seriesFrame(range: DateRange, options: { maxPoints?: number } = 
 }
 
 /**
- * Revenue per bucket, with the comparison period's revenue lined up point for
- * point. The comparison is left out entirely when its period reaches beyond
- * the data, so a partial period is never drawn as if it were complete.
+ * A metric per bucket, with the comparison period's value lined up point for
+ * point. `value` turns a bucket's additive totals into the metric, so sums and
+ * ratios are both computed from the same totals as the period summaries. The
+ * comparison is left out entirely when its period reaches beyond the data, so
+ * a partial period is never drawn as if it were complete.
  */
-export function revenueTrend(dataset: Dataset, frame: SeriesFrame, mode: ComparisonMode): RevenueTrendPoint[] {
+export function metricTrend(
+  dataset: Dataset,
+  frame: SeriesFrame,
+  mode: ComparisonMode,
+  value: (totals: PeriodTotals) => number | null,
+): TrendPoint[] {
   const current = totalsByBucket(dataset, frame.buckets);
   const comparable = isFullyCovered(dataset, getComparisonRange(frame.range, mode));
   const aligned = comparable ? alignComparisonBuckets(frame.buckets, frame.range, mode) : [];
   const previous = comparable ? totalsByBucket(dataset, aligned) : [];
 
-  return current.map(({ bucket, revenueMinor }, index) => {
+  return current.map((totals, index) => {
     const counterpart = previous[index];
     return {
-      ...chartPoint(bucket, frame.granularity),
-      revenueMinor,
-      previousRevenueMinor: counterpart ? counterpart.revenueMinor : null,
+      ...chartPoint(totals.bucket, frame.granularity),
+      value: value(totals),
+      previousValue: counterpart ? value(counterpart) : null,
       previousLabel: counterpart ? bucketLabel(counterpart.bucket, frame.granularity) : null,
     };
   });
@@ -146,4 +158,30 @@ export function peakPoint<T>(points: readonly T[], value: (point: T) => number):
     if (best === undefined || value(point) > value(best)) best = point;
   }
   return best;
+}
+
+export interface TrendExtremes {
+  highest: TrendPoint | undefined;
+  lowest: TrendPoint | undefined;
+  /** True when partial buckets were left out of the comparison. */
+  skippedPartial: boolean;
+}
+
+/**
+ * The highest and lowest points of a trend, ignoring points without a value.
+ * For totals, a partial week or month at the edge of the range would look
+ * like a slump simply for being shorter, so with `fullBucketsOnly` those are
+ * left out whenever at least one full bucket exists.
+ */
+export function trendExtremes(points: readonly TrendPoint[], options: { fullBucketsOnly: boolean }): TrendExtremes {
+  const valued = points.filter((point) => point.value !== null);
+  const full = valued.filter((point) => !point.partial);
+  const skippedPartial = options.fullBucketsOnly && full.length > 0 && full.length < valued.length;
+  const candidates = skippedPartial ? full : valued;
+  const score = (point: TrendPoint) => point.value ?? 0;
+  return {
+    highest: peakPoint(candidates, score),
+    lowest: peakPoint(candidates, (point) => -score(point)),
+    skippedPartial,
+  };
 }

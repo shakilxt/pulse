@@ -67,6 +67,11 @@ export function formatInteger(value: number): string {
   return numberFormat({ maximumFractionDigits: 0 }).format(value);
 }
 
+/** A number with a fixed count of decimals: 11.7. */
+export function formatDecimal(value: number, digits = 1): string {
+  return numberFormat({ minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
+}
+
 export function formatCompactNumber(value: number): string {
   return numberFormat({ notation: "compact", maximumFractionDigits: 1 }).format(value);
 }
@@ -119,6 +124,18 @@ export function formatMetricValue(value: number | null, format: MetricFormat): s
       return formatInteger(value);
     case "percentage":
       return formatPercent(value, 2);
+  }
+}
+
+/** A value for chart axes and point labels: "$5.9K", "1.2K", "1.4%". */
+export function formatCompactMetric(value: number, format: MetricFormat): string {
+  switch (format) {
+    case "currency":
+      return formatMoney(value, { compact: true });
+    case "integer":
+      return formatCompactNumber(value);
+    case "percentage":
+      return formatPercent(value, 1);
   }
 }
 

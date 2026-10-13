@@ -92,7 +92,12 @@ async function OverviewContent({ data, bounds }: { data: Promise<OverviewData>; 
       <MetricStrip metrics={overview.metrics} />
       <RevenuePanel overview={overview} />
       <RevenueBreakdown categories={overview.categories} totalMinor={overview.current.revenueMinor} />
-      <CashflowPanel overview={overview} />
+      <CashflowPanel
+        {...overview.cashflow}
+        revenueMinor={overview.current.revenueMinor}
+        profitMinor={overview.current.profitMinor}
+        className="lg:col-span-7"
+      />
       <AcquisitionPanel overview={overview} />
       <RecentTransactions rows={overview.recentTransactions} />
       <TopProducts products={overview.topProducts} />

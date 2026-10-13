@@ -33,7 +33,8 @@ export interface AcquisitionChannel {
 // ---------------------------------------------------------------------------
 // Ledger and people
 
-export type TransactionStatus = "completed" | "pending" | "refunded" | "failed";
+export const TRANSACTION_STATUSES = ["completed", "pending", "refunded", "failed"] as const;
+export type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
 
 export interface Transaction {
   id: string;

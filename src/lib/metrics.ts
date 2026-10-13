@@ -5,8 +5,8 @@
  */
 
 import type { DashboardMetric, MetricFormat } from "@/types/domain";
-import type { PeriodSummary } from "./aggregations";
-import { type Change, percentChange, pointChange } from "./calculations";
+import type { PeriodSummary, PeriodTotals } from "./aggregations";
+import { type Change, percentChange, pointChange, safeRatio } from "./calculations";
 import { type ComparisonMode, type DateRange, type RangePreset, rangeLength } from "./dates";
 
 export type MetricPolarity = "higher-is-better" | "lower-is-better";
@@ -97,6 +97,26 @@ export type MetricId = keyof typeof METRIC_DEFINITIONS;
 /** The four headline KPIs on the overview, in display order. */
 export const OVERVIEW_METRICS = ["revenue", "orders", "activeCustomers", "conversionRate"] as const satisfies readonly MetricId[];
 
+/**
+ * Metrics the analytics chart can draw over time. Each one can be computed for
+ * any span of days from additive totals, so a bucket's value is derived the
+ * same way as the period's. Sums add up across buckets; ratios do not.
+ */
+export const TREND_METRICS = ["revenue", "orders", "newCustomers", "conversionRate"] as const satisfies readonly MetricId[];
+export type TrendMetricId = (typeof TREND_METRICS)[number];
+
+export type TrendAggregation = "sum" | "ratio";
+
+export const TREND_METRIC_VALUES: Record<
+  TrendMetricId,
+  { aggregation: TrendAggregation; value: (totals: PeriodTotals) => number | null }
+> = {
+  revenue: { aggregation: "sum", value: (totals) => totals.revenueMinor },
+  orders: { aggregation: "sum", value: (totals) => totals.orders },
+  newCustomers: { aggregation: "sum", value: (totals) => totals.newCustomers },
+  conversionRate: { aggregation: "ratio", value: (totals) => safeRatio(totals.newCustomers, totals.visitors) },
+};
+
 export function isMetricId(value: string): value is MetricId {
   return Object.hasOwn(METRIC_DEFINITIONS, value);
 }
@@ -158,4 +178,9 @@ export function describeComparison(
   if (presetLabel) return presetLabel;
   const days = rangeLength(range);
   return days === 1 ? "vs previous day" : `vs previous ${days} days`;
+}
+
+/** Name of the comparison series in chart legends and tooltips. */
+export function comparisonSeriesName(mode: ComparisonMode): string {
+  return mode === "previous-year" ? "Same period last year" : "Previous period";
 }

@@ -2,41 +2,59 @@
 
 import { useId } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, ReferenceDot, Tooltip, XAxis, YAxis } from "recharts";
-import type { RevenueTrendPoint } from "@/lib/chart-series";
-import { formatMoney } from "@/lib/formatters";
+import type { TrendPoint } from "@/lib/chart-series";
+import { formatCompactMetric, formatMetricValue } from "@/lib/formatters";
+import type { MetricFormat } from "@/types/domain";
 import { AXIS_TICK, CHART_COLORS, CHART_MARGIN, Y_AXIS_WIDTH } from "./chart-theme";
 import { ChartTooltipCard, type TooltipRow } from "./chart-tooltip";
 import { useReducedMotion } from "./use-reduced-motion";
 
-interface RevenueChartProps {
-  points: readonly RevenueTrendPoint[];
+interface TrendChartProps {
+  points: readonly TrendPoint[];
+  format: MetricFormat;
+  /** Series name in the tooltip: "Revenue", "Conversion rate". */
+  seriesLabel: string;
+  /** Name of the dashed series: "Previous period" or "Same period last year". */
+  comparisonName: string;
+  /** Totals fill down to the axis; rates are a plain line, since the area under a rate means nothing. */
+  variant: "area" | "line";
+  /** The point to mark in gold, chosen on the server so the chart and its summary agree. */
+  peakDate: string | null;
   /** Accessible name for the drawing; the panel's summary describes it. */
   label: string;
 }
 
-const compactMoney = (value: number) => formatMoney(value, { compact: true });
-const wholeMoney = (value: number) => formatMoney(value, { whole: true });
-
 /**
- * The overview's hero chart: revenue for the period as an area, the
- * comparison period as a dashed line, and the strongest point marked in gold.
+ * One metric over time: the period as an area or line, the comparison period
+ * as a dashed line, and the strongest point marked in gold.
  */
-export function RevenueChart({ points, label }: RevenueChartProps) {
-  const gradientId = `${useId()}-revenue`;
+export function TrendChart({ points, format, seriesLabel, comparisonName, variant, peakDate, label }: TrendChartProps) {
+  const gradientId = `${useId()}-trend`;
   const reducedMotion = useReducedMotion();
   const data = [...points];
   const axisLabels = new Map(points.map((point) => [point.date, point.axisLabel]));
-  const hasComparison = points.some((point) => point.previousRevenueMinor !== null);
-  const peak = points.reduce<RevenueTrendPoint | undefined>(
-    (best, point) => (best === undefined || point.revenueMinor > best.revenueMinor ? point : best),
-    undefined,
-  );
+  const hasComparison = points.some((point) => point.previousValue !== null);
+  const compact = (value: number) => formatCompactMetric(value, format);
+  const full = (value: number | null) => formatMetricValue(value, format);
+
+  const peakIndex = points.findIndex((point) => point.date === peakDate);
+  const peak = points[peakIndex];
   // Keep the peak's label inside the plot when the peak sits near either edge.
-  const peakIndex = peak ? points.indexOf(peak) : -1;
   const peakLabelPosition =
     peakIndex >= points.length * 0.85 ? "left" : peakIndex <= points.length * 0.15 ? "right" : "top";
   // A single bucket has no line to draw, so each series shows as a dot instead.
   const single = points.length === 1;
+  const seriesProps = {
+    dataKey: "value",
+    name: seriesLabel,
+    type: "monotone" as const,
+    stroke: CHART_COLORS.primary,
+    strokeWidth: 2,
+    dot: single ? { r: 5, fill: CHART_COLORS.primary, stroke: "var(--surface)", strokeWidth: 2 } : false,
+    activeDot: { r: 5, fill: CHART_COLORS.primary, stroke: "var(--surface)", strokeWidth: 2 },
+    isAnimationActive: !reducedMotion,
+    animationDuration: 500,
+  };
 
   return (
     <ComposedChart
@@ -64,12 +82,13 @@ export function RevenueChart({ points, label }: RevenueChartProps) {
         tickMargin={8}
       />
       <YAxis
-        tickFormatter={compactMoney}
+        tickFormatter={compact}
         tick={AXIS_TICK}
         tickLine={false}
         axisLine={false}
         width={Y_AXIS_WIDTH}
         tickCount={5}
+        allowDecimals={format !== "integer"}
       />
       <Tooltip
         cursor={{ stroke: "var(--line-strong)", strokeWidth: 1 }}
@@ -77,16 +96,14 @@ export function RevenueChart({ points, label }: RevenueChartProps) {
         content={({ active, activeIndex }) => {
           const point = active && activeIndex !== null && activeIndex !== undefined ? points[Number(activeIndex)] : undefined;
           if (!point) return null;
-          const rows: TooltipRow[] = [
-            { label: "Revenue", value: wholeMoney(point.revenueMinor), color: CHART_COLORS.primary, mark: "line" },
-          ];
-          if (point.previousRevenueMinor !== null) {
+          const rows: TooltipRow[] = [{ label: seriesLabel, value: full(point.value), color: CHART_COLORS.primary, mark: "line" }];
+          if (point.previousLabel !== null) {
             rows.push({
-              label: "Previous period",
-              value: wholeMoney(point.previousRevenueMinor),
+              label: comparisonName,
+              value: full(point.previousValue),
               color: CHART_COLORS.neutral,
               mark: "dashed",
-              detail: point.previousLabel ?? undefined,
+              detail: point.previousLabel,
             });
           }
           return <ChartTooltipCard title={point.label} rows={rows} />;
@@ -94,8 +111,8 @@ export function RevenueChart({ points, label }: RevenueChartProps) {
       />
       {hasComparison ? (
         <Line
-          dataKey="previousRevenueMinor"
-          name="Previous period"
+          dataKey="previousValue"
+          name={comparisonName}
           type="monotone"
           stroke={CHART_COLORS.neutral}
           strokeWidth={1.5}
@@ -106,28 +123,17 @@ export function RevenueChart({ points, label }: RevenueChartProps) {
           animationDuration={500}
         />
       ) : null}
-      <Area
-        dataKey="revenueMinor"
-        name="Revenue"
-        type="monotone"
-        stroke={CHART_COLORS.primary}
-        strokeWidth={2}
-        fill={`url(#${gradientId})`}
-        dot={single ? { r: 5, fill: CHART_COLORS.primary, stroke: "var(--surface)", strokeWidth: 2 } : false}
-        activeDot={{ r: 5, fill: CHART_COLORS.primary, stroke: "var(--surface)", strokeWidth: 2 }}
-        isAnimationActive={!reducedMotion}
-        animationDuration={500}
-      />
-      {peak && points.length > 1 ? (
+      {variant === "area" ? <Area {...seriesProps} fill={`url(#${gradientId})`} /> : <Line {...seriesProps} />}
+      {peak && peak.value !== null ? (
         <ReferenceDot
           x={peak.date}
-          y={peak.revenueMinor}
+          y={peak.value}
           r={5}
           fill={CHART_COLORS.highlight}
           stroke="var(--surface)"
           strokeWidth={2}
           label={{
-            value: `Peak ${compactMoney(peak.revenueMinor)}`,
+            value: `Peak ${compact(peak.value)}`,
             position: peakLabelPosition,
             offset: 10,
             fill: "var(--ink)",
