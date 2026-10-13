@@ -24,3 +24,15 @@ Lucide icons · Vitest · Playwright
 | `npm run check`     | Typecheck, lint, unit tests and build           |
 
 Requires Node.js 22 or later.
+
+## Demo data
+
+The dataset is generated on the server from a fixed seed (`src/data/generate.ts`), so every run produces the same
+records and nothing depends on the current date. It covers 1 January 2024 to 30 September 2026 for the fictional
+Fernhill Studio, and is simulated in the order a real business works: daily traffic per channel converts into new
+customers, customers make purchases, and revenue, product performance, expenses and notifications all derive from
+that ledger. Names are random combinations and every email uses the reserved `example.com` domain.
+
+Money is stored as integer cents. Ratios are fractions, and changes in a ratio are reported in percentage points.
+Metric definitions live in `src/lib/metrics.ts`; unit tests check that chart series, KPIs, product and channel
+breakdowns all reconcile with the underlying transactions.

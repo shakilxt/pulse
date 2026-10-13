@@ -78,6 +78,20 @@
   --focus: light-dark(#b07d2a, #d2b47c);
   --focus-on-nav: #d2b47c;
 
+  /*
+   * Charts. The categorical order (green, slate, gold) is validated for colour
+   * vision deficiency on the chart surface in both modes: adjacent slots clear
+   * the CVD target, and the non-adjacent green/gold pair in dark mode sits in
+   * the floor band, so multi-series charts always carry a legend and direct
+   * labels. More than three series fold into "Other" (--chart-neutral).
+   * Single-series charts use --chart-1, with --chart-3 for the highlighted point.
+   */
+  --chart-1: light-dark(#1e7a54, #3f9a6e);
+  --chart-2: light-dark(#4767b0, #6f8bd4);
+  --chart-3: light-dark(#b37c1f, #b88a3a);
+  --chart-neutral: light-dark(#8f8b7e, #6f8579);
+  --chart-grid: light-dark(#ebe7dd, #2a4237);
+
   /* Landscape illustration */
   --land-sky: light-dark(#f3efe4, #14231e);
   --land-sun: light-dark(#e4cf9f, #6f6040);
@@ -142,6 +156,12 @@
   --color-nav-active-ink: var(--nav-active-ink);
   --color-nav-line: var(--nav-line);
   --color-nav-accent: var(--nav-accent);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-neutral: var(--chart-neutral);
+  --color-chart-grid: var(--chart-grid);
 
   --color-focus: var(--focus);
   --color-focus-on-nav: var(--focus-on-nav);
