@@ -70,7 +70,7 @@ test("saved settings persist and take effect across the workspace", async ({ pag
   // Payment notifications are hidden from the bell.
   await page.getByRole("button", { name: /^Notifications/ }).click();
   const menu = page.getByRole("menu");
-  await expect(menu).toContainText("hidden by your notification settings");
+  await expect(menu.getByRole("menuitem", { name: /^Notification settings/ })).toContainText("hidden");
   await expect(menu).not.toContainText("Payment failed");
   await expect(menu).toContainText("Monthly report ready");
   await page.keyboard.press("Escape");

@@ -29,7 +29,8 @@ function NavLink({ item, active, layout, onNavigate }: NavLinkProps) {
         "focus-ring-nav group relative flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
         collapsible && "justify-center xl:justify-start",
         active
-          ? "bg-nav-active text-nav-active-ink"
+          ? // Forced-colors modes drop the background, so the active link gets an outline there.
+            "bg-nav-active text-nav-active-ink forced-colors:outline-1 forced-colors:outline-offset-0"
           : "text-nav-ink-muted hover:bg-nav-active/60 hover:text-nav-ink",
       )}
     >

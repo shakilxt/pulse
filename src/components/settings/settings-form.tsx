@@ -2,7 +2,7 @@
 
 import { type ReactNode, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CreditCard, FileText, Monitor, Moon, RotateCcw, Sun, UserRound, type LucideIcon } from "lucide-react";
+import { Activity, Check, CirclePause, CreditCard, FileText, Monitor, Moon, RotateCcw, Sun, UserRound, type LucideIcon } from "lucide-react";
 import { setThemePreference, useThemePreference } from "@/components/theme/theme-store";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -39,9 +39,9 @@ const CURRENCY_OPTIONS: Record<CurrencyCode, { label: string; symbol: string }> 
   GBP: { label: "Pound sterling", symbol: "£" },
 };
 
-const MOTION_OPTIONS: Record<ChartMotion, { label: string; description: string }> = {
-  system: { label: "Follow system", description: "Animate unless the device asks for reduced motion" },
-  off: { label: "Off", description: "Charts appear without animating" },
+const MOTION_OPTIONS: Record<ChartMotion, { label: string; description: string; icon: LucideIcon }> = {
+  system: { label: "Follow system", description: "Animate unless the device asks for reduced motion", icon: Activity },
+  off: { label: "Off", description: "Charts appear without animating", icon: CirclePause },
 };
 
 const NOTIFICATION_OPTIONS: Record<NotificationCategory, { label: string; description: string; icon: LucideIcon }> = {
@@ -245,6 +245,7 @@ export function SettingsForm({ saved }: SettingsFormProps) {
                   onChange={() => update({ chartMotion: value })}
                   label={MOTION_OPTIONS[value].label}
                   description={MOTION_OPTIONS[value].description}
+                  icon={MOTION_OPTIONS[value].icon}
                 />
               ))}
             </ChoiceGroup>

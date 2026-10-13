@@ -66,7 +66,7 @@ test.describe("notifications", () => {
     const trigger = page.getByRole("button", { name: "Notifications, 3 unread" });
     await trigger.click();
     const menu = page.getByRole("menu");
-    await expect(menu.getByRole("menuitem")).toHaveCount(8); // mark-all + 7 notifications
+    await expect(menu.getByRole("menuitem")).toHaveCount(9); // mark-all + 7 notifications + settings link
     await expect(menu).toContainText("Nothing is sent anywhere");
 
     await menu.getByRole("menuitem", { name: "Mark all as read" }).click();
@@ -104,6 +104,20 @@ test.describe("notifications", () => {
     await expect(page.getByRole("menuitem", { name: /4 payments pending/ })).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL("/transactions?status=pending");
+  });
+
+  test("reaches the end of a long list from the keyboard", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /^Notifications/ }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("menuitem", { name: "Mark all as read" })).toBeFocused();
+    await page.keyboard.press("End");
+    const settings = page.getByRole("menuitem", { name: /^Notification settings/ });
+    await expect(settings).toBeFocused();
+    await expect(settings).toBeInViewport();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL("/settings#notifications");
   });
 });
 

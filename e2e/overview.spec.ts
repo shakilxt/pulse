@@ -24,7 +24,11 @@ async function revenueTicks(page: Page): Promise<string> {
 
 async function openOverview(page: Page, path = "/") {
   await page.goto(path);
-  await expect(page.locator("section[aria-labelledby='revenue-title'] .recharts-surface")).toBeVisible();
+  // Charts draw as they near the viewport; on a phone the revenue chart starts below the fold.
+  const revenue = page.locator("section[aria-labelledby='revenue-title']");
+  await revenue.scrollIntoViewIfNeeded();
+  await expect(revenue.locator(".recharts-surface")).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForLoadState("networkidle");
 }
 
@@ -54,7 +58,10 @@ test.describe("overview", () => {
       "Recent transactions",
       "Top products",
     ]) {
-      await expect(page.getByRole("heading", { level: 2, name: heading, exact: true })).toBeVisible();
+      const title = page.getByRole("heading", { level: 2, name: heading, exact: true });
+      // Charts draw as they near the viewport, so bring each panel into view.
+      await title.scrollIntoViewIfNeeded();
+      await expect(title).toBeVisible();
     }
     await expect(page.locator(".recharts-surface")).toHaveCount(3);
     await expect(page.getByRole("region", { name: "Recent transactions" }).getByRole("row")).toHaveCount(7);
@@ -180,5 +187,17 @@ test.describe("overview on mobile", () => {
     const greeting = await page.locator("section[aria-labelledby='greeting-title']").boundingBox();
     const period = await page.locator("section[aria-labelledby='period-title']").boundingBox();
     expect(greeting && period && period.y > greeting.y + greeting.height - 1).toBe(true);
+  });
+
+  test("draws charts further down the page only as they come near", async ({ page }) => {
+    await openOverview(page);
+    const acquisition = page.locator("section[aria-labelledby='acquisition-title']");
+    // The plot box is reserved at its full height before the chart draws.
+    const before = await acquisition.locator("figure > div").first().boundingBox();
+    await expect(acquisition.locator(".recharts-surface")).toHaveCount(0);
+    await acquisition.scrollIntoViewIfNeeded();
+    await expect(acquisition.locator(".recharts-surface")).toBeVisible();
+    const after = await acquisition.locator("figure > div").first().boundingBox();
+    expect(after?.height).toBe(before?.height);
   });
 });

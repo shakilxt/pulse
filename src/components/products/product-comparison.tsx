@@ -47,6 +47,7 @@ export function ProductComparison({ view }: { view: ProductPerformanceView }) {
     <ChartFrame
       id="product-comparison"
       title="Product comparison"
+      deferPlot={false}
       description={`${scope}, ranked by ${metricLabel.toLowerCase()}, ${formatDateRange(view.range)}`}
       className="lg:col-span-12"
       aside={

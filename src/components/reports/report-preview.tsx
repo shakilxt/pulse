@@ -13,7 +13,7 @@ function PreviewTable({ table }: { table: ReportTable }) {
         {table.title}
       </h3>
       <p className="mt-1 text-sm text-ink-muted">{table.description}</p>
-      <div role="region" aria-labelledby={titleId} tabIndex={0} className="mt-4 overflow-x-auto rounded-md">
+      <div role="region" aria-labelledby={titleId} tabIndex={0} className="scroll-shadow-x mt-4 overflow-x-auto rounded-md">
         <table className="w-full text-sm tabular" data-report-table={table.id}>
           <caption className="sr-only">{table.title}</caption>
           <thead>

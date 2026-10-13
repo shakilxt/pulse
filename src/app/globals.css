@@ -58,12 +58,13 @@
   --on-primary: light-dark(#f7f4ec, #0b2923);
 
   /* Status (text-safe on surfaces in both modes) */
-  --positive: light-dark(#277a54, #6cc39a);
+  --positive: light-dark(#226f4c, #6cc39a);
   --positive-soft: light-dark(#e3efe6, #1d3a2d);
   --warning: light-dark(#8c5a16, #e0a85c);
   --warning-soft: light-dark(#f5ead6, #3a2f1d);
-  --danger: light-dark(#b5443d, #ee8a80);
+  --danger: light-dark(#a83c36, #ee8a80);
   --danger-soft: light-dark(#f6e3e0, #3d2422);
+  --scroll-shadow: light-dark(rgb(11 41 35 / 0.18), rgb(0 0 0 / 0.55));
 
   /* Navigation */
   --nav-bg: light-dark(#123d32, #0d1a16);
@@ -266,6 +267,20 @@
 
 @utility tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Edge shadows on a horizontally scrolling region that appear only while there
+ * is more to scroll: the surface-coloured covers move with the content
+ * (`local`) and hide each shadow (`scroll`) once that end is reached.
+ */
+@utility scroll-shadow-x {
+  background:
+    linear-gradient(to right, var(--surface) 40%, transparent) left center / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--surface) 40%, transparent) right center / 2rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--scroll-shadow), transparent) left center / 0.75rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--scroll-shadow), transparent) right center / 0.75rem 100% no-repeat scroll,
+    var(--surface);
 }
 
 @utility focus-ring-nav {

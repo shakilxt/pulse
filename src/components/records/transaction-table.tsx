@@ -131,7 +131,7 @@ export function TransactionTable({ list, search, bounds, currency }: Transaction
             <SearchInput
               value={query.search}
               label="Search transactions"
-              placeholder="Search ID, customer, product or payment"
+              placeholder="ID, customer, product or payment"
             />
           }
           filters={

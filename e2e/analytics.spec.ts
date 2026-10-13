@@ -42,7 +42,10 @@ test.describe("analytics", () => {
     await expect(stats(page)).toContainText("$1,852");
 
     for (const heading of ["Revenue vs expenses", "Period comparison", "Acquisition channels", "Transaction volume"]) {
-      await expect(page.getByRole("heading", { level: 2, name: heading, exact: true })).toBeVisible();
+      const title = page.getByRole("heading", { level: 2, name: heading, exact: true });
+      // Charts draw as they near the viewport, so bring each panel into view.
+      await title.scrollIntoViewIfNeeded();
+      await expect(title).toBeVisible();
     }
     await expect(page.getByRole("region", { name: "Period comparison" }).getByRole("row")).toHaveCount(11);
     await expect(page.getByRole("region", { name: "Transaction volume" })).toContainText("1,019");

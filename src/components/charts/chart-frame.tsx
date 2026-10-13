@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ChartBoundary } from "./chart-boundary";
+import { MountWhenNear } from "./mount-when-near";
 
 export interface ChartTableColumn {
   label: string;
@@ -27,6 +28,11 @@ interface ChartFrameProps {
   table: ChartTable;
   /** Fixed plot height, so nothing shifts while the chart draws. */
   plotClassName: string;
+  /**
+   * Draw the plot only once it nears the viewport (the default, for charts drawn
+   * in the browser). Turn off for plots that are server-rendered HTML.
+   */
+  deferPlot?: boolean;
   /** Supporting content after the summary, such as a breakdown list. */
   footer?: ReactNode;
   className?: string;
@@ -47,6 +53,7 @@ export function ChartFrame({
   summary,
   table,
   plotClassName,
+  deferPlot = true,
   footer,
   className,
   children,
@@ -65,7 +72,7 @@ export function ChartFrame({
         {aside}
       </header>
       {legend ? <div className="mt-4">{legend}</div> : null}
-      <ChartFigure titleId={titleId} summaryId={summaryId} summary={summary} plotClassName={plotClassName}>
+      <ChartFigure titleId={titleId} summaryId={summaryId} summary={summary} plotClassName={plotClassName} deferPlot={deferPlot}>
         {children}
       </ChartFigure>
       {footer}
@@ -79,16 +86,17 @@ interface ChartFigureProps {
   summaryId: string;
   summary: string;
   plotClassName: string;
+  deferPlot?: boolean;
   className?: string;
   children: ReactNode;
 }
 
 /** The plot at a fixed height with its written summary as the caption. */
-export function ChartFigure({ titleId, summaryId, summary, plotClassName, className, children }: ChartFigureProps) {
+export function ChartFigure({ titleId, summaryId, summary, plotClassName, deferPlot = true, className, children }: ChartFigureProps) {
   return (
     <figure aria-labelledby={titleId} aria-describedby={summaryId} className={cn("mt-4 flex flex-1 flex-col", className)}>
       <div className={cn("relative -mx-1", plotClassName)}>
-        <ChartBoundary>{children}</ChartBoundary>
+        <ChartBoundary>{deferPlot ? <MountWhenNear>{children}</MountWhenNear> : children}</ChartBoundary>
       </div>
       <figcaption id={summaryId} className="mt-4 text-sm leading-relaxed text-ink-muted">
         {summary}
@@ -109,7 +117,7 @@ export function ChartDataTable({ table }: { table: ChartTable }) {
         role="region"
         aria-label={table.caption}
         tabIndex={0}
-        className="mt-3 max-h-72 overflow-auto rounded-md border border-line"
+        className="scroll-shadow-x mt-3 max-h-72 overflow-auto rounded-md border border-line"
       >
         <table className="w-full text-left text-sm tabular">
           <caption className="sr-only">{table.caption}</caption>

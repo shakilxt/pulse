@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, CheckCheck, CreditCard, FileText, UserRound, type LucideIcon } from "lucide-react";
+import { Bell, CheckCheck, CreditCard, FileText, SlidersHorizontal, UserRound, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -56,8 +56,9 @@ export function NotificationsMenu({ items, hiddenCount, asOfLabel }: Notificatio
           ) : null}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[min(calc(100vw-2rem),384px)] p-0">
-        <div className="flex items-center justify-between gap-3 py-2 pr-1.5 pl-4">
+      {/* The menu itself scrolls, so keyboard focus (on the menu and its items) can always reach the overflow. */}
+      <DropdownMenuContent className="max-h-[min(560px,var(--radix-dropdown-menu-content-available-height))] w-[min(calc(100vw-2rem),384px)] overflow-y-auto overscroll-contain p-0">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-surface-raised py-2 pr-1.5 pl-4">
           <p className="text-sm font-semibold text-ink">Notifications</p>
           <DropdownMenuItem
             disabled={unread.length === 0}
@@ -72,8 +73,7 @@ export function NotificationsMenu({ items, hiddenCount, asOfLabel }: Notificatio
             Mark all as read
           </DropdownMenuItem>
         </div>
-        <DropdownMenuSeparator className="my-0" />
-        <div className="max-h-[min(420px,60vh)] overflow-y-auto p-1.5">
+        <div className="p-1.5">
           {items?.map((item) => (
             <NotificationRow key={item.id} item={item} unread={isUnread(item)} />
           ))}
@@ -84,19 +84,23 @@ export function NotificationsMenu({ items, hiddenCount, asOfLabel }: Notificatio
           ) : null}
         </div>
         <DropdownMenuSeparator className="my-0" />
-        <p className="px-4 py-3 text-xs leading-relaxed text-ink-muted">
+        <p className="px-4 pt-3 pb-1 text-xs leading-relaxed text-ink-muted">
           Demo notifications drawn from the sample data, timed relative to {asOfLabel}. Nothing is sent anywhere.
-          {hiddenCount > 0 ? (
-            <>
-              {" "}
-              {hiddenCount === 1 ? "1 is" : `${hiddenCount} are`} hidden by your{" "}
-              <Link href="/settings#notifications" className="font-medium text-accent-ink underline-offset-4 hover:underline">
-                notification settings
-              </Link>
-              .
-            </>
-          ) : null}
         </p>
+        {/* Last, as a menu item: arrow keys and End reach it, and focusing it scrolls the menu to the bottom. */}
+        <div className="p-1.5">
+          <DropdownMenuItem asChild className="py-2 text-sm font-medium text-accent-ink">
+            <Link href="/settings#notifications">
+              <SlidersHorizontal aria-hidden />
+              <span className="flex-1">Notification settings</span>
+              {hiddenCount > 0 ? (
+                <span className="text-xs font-normal text-ink-muted">
+                  {hiddenCount} hidden
+                </span>
+              ) : null}
+            </Link>
+          </DropdownMenuItem>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

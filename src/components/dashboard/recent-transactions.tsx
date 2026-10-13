@@ -29,7 +29,7 @@ const columnsFor = (currency: CurrencyCode): DataTableColumn<TransactionRow>[] =
     hideBelow: "sm",
     cell: (row) => <span className="block max-w-48 truncate">{row.customerName}</span>,
   },
-  { id: "product", header: "Product", hideBelow: "xl", cell: (row) => row.productName },
+  { id: "product", header: "Product", hideBelow: "wide", cell: (row) => row.productName },
   { id: "date", header: "Date", hideBelow: "md", cell: (row) => <span className="whitespace-nowrap">{formatDate(row.date)}</span> },
   { id: "status", header: "Status", cell: (row) => <StatusBadge status={row.status} /> },
   {
